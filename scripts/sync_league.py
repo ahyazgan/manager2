@@ -26,7 +26,7 @@ from app.core.logging import get_logger, setup_logging  # noqa: E402
 from app.data.ingest import backfill_appearances, sync_league  # noqa: E402
 from app.data.sources.api_football import APIFootball  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
-from app.db.tenant_context import DEFAULT_TENANT_ID  # noqa: E402
+from app.db.tenant_context import DEFAULT_TENANT_ID, set_current_tenant_id  # noqa: E402
 
 log = get_logger(__name__)
 
@@ -47,6 +47,9 @@ def main() -> None:
     args = parser.parse_args()
 
     setup_logging()
+    # CLI yolunda tenant context yok — --tenant'a (default: seed'li default
+    # tenant) yaz; yoksa tenant_id NOT NULL şemasında INSERT düşer.
+    set_current_tenant_id(args.tenant)
     source = APIFootball()
     with SessionLocal() as session:
         report = sync_league(
