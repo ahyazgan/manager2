@@ -14,7 +14,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
@@ -802,6 +802,54 @@ def xg_model_status() -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Prompt 3 — Daily decision brief manual trigger + notifications
 # --------------------------------------------------------------------------- #
+
+
+@router.post(
+    "/sync-league",
+    tags=["admin"],
+    summary="Lig sync'ini arka planda tetikle (onboarding / ilk veri yükleme)",
+)
+def trigger_sync_league(
+    background: BackgroundTasks,
+    league_id: int = Query(203, description="API-Football league.id (203=Süper Lig)"),
+    season: int = Query(2025),
+    last: int = Query(10, ge=1, le=50, description="Takım başına çekilecek son maç sayısı"),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Onboarding sihirbazının veri-yükleme düğmesi.
+
+    Sync'i `run_job` üzerinden arka planda koşturur → `job_runs`'a yazılır,
+    istemci `GET /admin/jobs?since_hours=1` ile durumu izler, `GET
+    /admin/db-stats` ile dolan tabloları görür. Koşan bir sync varsa ikinciyi
+    başlatmaz (idempotent tetikleme).
+    """
+    running = session.execute(
+        select(models.JobRun)
+        .where(
+            models.JobRun.job_name == "sync_league",
+            models.JobRun.status == "running",
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if running is not None:
+        return {"status": "already_running", "job_run_id": running.id}
+
+    # Request bittikten sonra koşacak task request'in tenant'ında yazmalı;
+    # session.info request-scoped olduğundan tenant'ı şimdi yakala.
+    tenant_id = session.info.get("tenant_id")
+
+    def _run_sync_job() -> None:
+        from app.db.tenant_context import set_current_tenant_id
+        from app.scheduler.runner import run_job
+
+        set_current_tenant_id(tenant_id)
+        try:
+            run_job("sync_league", league_id=league_id, season=season, last=last)
+        finally:
+            set_current_tenant_id(None)
+
+    background.add_task(_run_sync_job)
+    return {"status": "started", "league_id": league_id, "season": season}
 
 
 @router.post(
