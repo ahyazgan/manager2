@@ -16,6 +16,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import { DEMO_MODE } from "@/lib/demo-mode";
+import { useI18n } from "@/lib/i18n";
 import { DataSourceStrip, type SourceId } from "@/lib/data-source";
 import { Crest } from "@/lib/teams";
 import { demoLive } from "@/lib/demo-data";
@@ -124,6 +125,7 @@ export function ConsoleShell({
 }: ConsoleShellProps) {
   // Tablet/mobil: sidebar çekmece (drawer) olarak açılır.
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const { lang, setLang, t } = useI18n();
 
   // ESC tuşu ile kapat + açıkken body scroll lock
   React.useEffect(() => {
@@ -182,6 +184,15 @@ export function ConsoleShell({
         </div>
 
         <div className="nav-right">
+          <button
+            type="button"
+            className="lang-btn"
+            title={t("Dil")}
+            aria-label={t("Dil")}
+            onClick={() => setLang(lang === "tr" ? "en" : "tr")}
+          >
+            {lang === "tr" ? "EN" : "TR"}
+          </button>
           {DEMO_MODE && (
             <Link href={DEMO_LIVE_HREF} className="live-strip" title={`Canlı maç — konsola git`}>
               <span className="ls-dot" aria-hidden="true" />
@@ -228,10 +239,10 @@ export function ConsoleShell({
 
       {/* Mobil alt bar */}
       <nav className="btabs" aria-label="Mobil navigasyon">
-        {BTABS.map((t) => (
-          <Link key={t.href} href={t.href} className={`btab${t.href === active ? " active" : ""}`}>
-            <i className={`ti ${t.ic} bi`} aria-hidden="true" />
-            {t.label}
+        {BTABS.map((tab) => (
+          <Link key={tab.href} href={tab.href} className={`btab${tab.href === active ? " active" : ""}`}>
+            <i className={`ti ${tab.ic} bi`} aria-hidden="true" />
+            {t(tab.label)}
           </Link>
         ))}
       </nav>
@@ -250,6 +261,7 @@ export function ConsoleShell({
 const SIDEBAR_COLLAPSE_KEY = "manager2_console_sidebar_collapsed_v3";
 
 function SidebarNav({ active, navBadge }: { active: string; navBadge?: number }) {
+  const { t } = useI18n();
   // Varsayılan: çekirdek döngü ("Bu Hafta") açık, kalan gruplar kapalı (aktif
   // sayfanın grubu hasActive ile açık kalır). Kullanıcı tercihi localStorage'da.
   const [collapsed, setCollapsed] = React.useState<Set<string>>(
@@ -293,7 +305,7 @@ function SidebarNav({ active, navBadge }: { active: string; navBadge?: number })
               aria-expanded={open}
               onClick={() => toggle(g.grp)}
             >
-              <span>{g.grp}</span>
+              <span>{t(g.grp)}</span>
               <i className={`ti ti-chevron-down sgrp-chev${open ? "" : " closed"}`} aria-hidden="true" />
             </button>
             {open &&
@@ -304,7 +316,7 @@ function SidebarNav({ active, navBadge }: { active: string; navBadge?: number })
                   className={`sni${it.href === active ? " active" : ""}`}
                 >
                   <i className={`ti ${it.icon}`} aria-hidden="true" />
-                  <span className="sni-label">{it.label}</span>
+                  <span className="sni-label">{t(it.label)}</span>
                   {it.badge != null && (
                     <span className={`nbadge ${it.badgeKind ?? "count"}`}>{it.badge}</span>
                   )}
@@ -372,6 +384,16 @@ const CSS = `
 }
 .ovroot .menu-btn:hover{background:var(--surface2);border-color:var(--border)}
 .ovroot .menu-btn:active{transform:scale(.94)}
+
+/* Dil düğmesi (TR/EN) — i18n iskeleti */
+.ovroot .lang-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:34px;height:28px;padding:0 8px;margin-right:8px;flex-shrink:0;
+  background:transparent;border:1px solid var(--line);border-radius:8px;
+  color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.5px;
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.ovroot .lang-btn:hover{background:var(--surface2);color:var(--ink);border-color:var(--border)}
 
 /* Çekmece karartması */
 .ovroot .nav-backdrop{

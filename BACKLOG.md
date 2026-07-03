@@ -52,9 +52,9 @@
 
 ## Later (lower priority — only if Now + Next clear)
 
-- [ ] PDF report export for scout_report_generator
-- [ ] Push/email delivery for digests (currently pull-only)
-- [ ] i18n scaffold for English UI
+- [x] PDF report export for scout_report_generator  (22730a9 — build_scout_report_pdf + POST /reports/scout/pdf + UI "PDF indir")
+- [x] Push/email delivery for digests  (a0d073f e-posta + aa77414 weekly_digest_notify tüm kanallar)
+- [x] i18n scaffold for English UI  (sözlük IA v3'e güncellendi, ConsoleShell nav/btabs t() ile çevriliyor, navbar'da TR/EN düğmesi)
 - [x] Security headers (CSP / HSTS / X-Frame-Options / X-Content-Type-Options)  (b067175)
 - [x] Retry + circuit-breaker on external API calls  (868f289)
 - [x] Liveness/readiness split on /health  (pre-existing — /healthz + /readyz)
