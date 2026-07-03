@@ -58,6 +58,37 @@ const WATCHLIST = [
 
 export default function ScoutReportsPage() {
   const access = useProviderAccess("scout");
+  const [pdfBusy, setPdfBusy] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
+
+  // Görünen raporları backend PDF üreticisine gönder, dosyayı indir.
+  const downloadPdf = React.useCallback(async () => {
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const res = await fetch("/api/reports/scout/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reports: REPORTS, club_name: "Beşiktaş" }),
+      });
+      if (!res.ok) {
+        setPdfError(res.status === 503
+          ? "PDF üretici backend'de devre dışı (reportlab kurulu değil)."
+          : `PDF üretilemedi (HTTP ${res.status}) — backend bağlı mı?`);
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "skaut_raporlari.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPdfError("Backend'e ulaşılamadı — PDF üretilemedi.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }, []);
 
   if (!access.connected) {
     return (
@@ -114,7 +145,29 @@ export default function ScoutReportsPage() {
         <div className="kpi"><div className="kl">Bu Ay</div><div className="kn">{REPORTS.length}</div><div className="kd">yeni rapor</div></div>
       </div>
 
-      <div className="st" style={{ marginTop: 0 }}><h2>Raporlar</h2><span className="ep">en yeni önce</span></div>
+      <div className="st" style={{ marginTop: 0 }}>
+        <h2>Raporlar</h2>
+        <span className="ep" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          en yeni önce
+          <button
+            type="button"
+            onClick={downloadPdf}
+            disabled={pdfBusy}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "5px 12px", borderRadius: 7, border: "1px solid var(--line)",
+              background: "var(--panel)", color: "var(--ink)", fontSize: 12,
+              fontWeight: 600, cursor: pdfBusy ? "wait" : "pointer",
+            }}
+          >
+            <i className="ti ti-file-type-pdf" aria-hidden="true" />
+            {pdfBusy ? "Üretiliyor…" : "PDF indir"}
+          </button>
+        </span>
+      </div>
+      {pdfError && (
+        <div style={{ fontSize: 12, color: "var(--crit)", margin: "6px 0" }}>{pdfError}</div>
+      )}
       <div style={{ display: "grid", gap: 10 }}>
         {REPORTS.map((r, i) => {
           const m = REC_META[r.rec];
