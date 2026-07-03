@@ -10,6 +10,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { EmptyState } from "@/components/ui";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { demoPlayerRows, demoSquad, DEMO_OPPONENT } from "@/lib/demo-data";
 import { recommendedXI, squadAvailability } from "@/lib/lineup-advice";
@@ -250,8 +251,16 @@ export default function SquadConsolePage() {
           </tr></thead>
           <tbody>
             {sortedShown.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--dim)", padding: "18px" }}>
-                {players.length === 0 ? "Veri yok (backend bağlı değilse boş gelir)." : "Bu filtrede oyuncu yok."}
+              <tr><td colSpan={7} style={{ padding: "12px" }}>
+                {players.length === 0 ? (
+                  <EmptyState
+                    icon="ti-users"
+                    title="Kadro verisi yok"
+                    description="Fiziksel test kaydı girilince (Veri Girişi & Batarya) ya da lig verisi çekilince bu tablo dolar."
+                  />
+                ) : (
+                  <div style={{ textAlign: "center", color: "var(--dim)", padding: "6px" }}>Bu filtrede oyuncu yok.</div>
+                )}
               </td></tr>
             )}
             {sortedShown.map((p, i) => {

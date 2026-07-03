@@ -13,7 +13,9 @@
 
 import * as React from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { EmptyState } from "@/components/ui";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { Crest } from "@/lib/teams";
 import { compareDna, weaknessMap, matchPlan } from "@/lib/tactical-dna";
@@ -332,9 +334,25 @@ export default function OpponentConsolePage() {
         </div>
       )}
 
-      {!DEMO_MODE && !q && <div className="pgdesc">İki takım ID gir (bizim + rakip).</div>}
+      {!DEMO_MODE && !q && (
+        <div style={{ margin: "12px 0" }}>
+          <EmptyState
+            icon="ti-swords"
+            title="Rakip analizi için iki takım seç"
+            description="Takım ID'lerini Takımlar sayfasından bulabilirsin. Liste boşsa önce lig verisini çekmek gerekir."
+            ctaLabel="Veri yoksa: kurulumu başlat"
+          >
+            <Link href="/teams" style={{ fontSize: 12.5 }}>Takım ID&apos;lerini gör →</Link>
+          </EmptyState>
+        </div>
+      )}
       {!DEMO_MODE && q && isLoading && <div className="pgdesc">Hesaplanıyor…</div>}
-      {!DEMO_MODE && error && <div className="pgdesc">Analiz üretilemedi ya da yetki yok.</div>}
+      {!DEMO_MODE && error && (
+        <div className="pgdesc">
+          Analiz üretilemedi — takım ID&apos;leri doğru mu, maç/event verisi var mı?{" "}
+          <Link href="/onboarding">Veri kurulumu</Link>
+        </div>
+      )}
       {!DEMO_MODE && data?.note && <div className="pgdesc">{data.note}</div>}
 
       {/* DEMO: zengin scout şeridi */}

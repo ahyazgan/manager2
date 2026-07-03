@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import { ConsoleShell } from "../_console/shell";
 import { InsightFeed } from "../_console/insights";
 import { weeklyInsights } from "@/lib/weekly-insights";
@@ -68,7 +69,8 @@ function BackendDigestPanel(): React.ReactElement | null {
       <div className="rc" style={{ marginBottom: 16, padding: "10px 14px",
         borderLeft: "3px solid var(--high)" }}>
         <span style={{ color: "var(--muted)", fontSize: 12 }}>
-          Backend digest yüklenemedi (lig {DIGEST_LEAGUE_ID})
+          Backend digest yüklenemedi (lig {DIGEST_LEAGUE_ID}) — lig verisi
+          çekilmemiş olabilir. <Link href="/onboarding">Veri kurulumu →</Link>
         </span>
       </div>
     );
