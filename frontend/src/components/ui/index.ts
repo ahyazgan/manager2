@@ -21,3 +21,6 @@ export { EndpointTag } from "./endpoint-tag";
 export { RiskPill } from "./risk-pill";
 export { ConditionBar } from "./condition-bar";
 export { ProbBar } from "./prob-bar";
+// Boş-durum standardı — verisiz sayfa "veri nasıl gelir" + CTA gösterir
+export { EmptyState } from "./empty-state";
+export type { EmptyStateProps } from "./empty-state";

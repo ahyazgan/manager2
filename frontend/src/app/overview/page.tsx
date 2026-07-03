@@ -14,6 +14,7 @@ import { apiFetch } from "@/lib/api";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { demoPlayerRows, demoNextMatch, demoRecentForm, demoRatingTrend, demoLive, demoSquad, type FormResult, type Briefing } from "@/lib/demo-data";
 import { SourceMark } from "@/lib/data-source";
+import { EmptyState } from "@/components/ui";
 import { Crest } from "@/lib/teams";
 import { PlayerAvatar } from "@/lib/player-avatar";
 
@@ -271,8 +272,11 @@ export default function OverviewConsolePage() {
     when: o.updated_at.slice(0, 16).replace("T", " "),
     summary: o.summary,
   }));
-  // Backend bağlı değil / boş → demo şeridi göster.
-  const offline = !isLoading && (!!error || players.length === 0);
+  // İki ayrı boş-durum: backend'e ULAŞILAMIYOR (bağlantı yok) vs backend var
+  // ama DB BOŞ (veri kurulumu yapılmamış) — ikincisi /onboarding'e yönlendirir.
+  const offline = !isLoading && !!error;
+  const dbEmpty =
+    !DEMO_MODE && !isLoading && !error && players.length === 0 && (teams?.length ?? 0) === 0;
   const total = players.length;
   const totalTests = players.reduce((a, p) => a + p.test_count, 0);
   const risky = players.filter((p) => p.risk_label === "Yüksek" || p.risk_label === "Kritik").length;
@@ -436,8 +440,17 @@ export default function OverviewConsolePage() {
       {offline && (
         <div className="demobar">
           <span style={{ fontSize: 15 }}>🔌</span>
-          <span><b>Demo modu</b> — veri sunucusu (backend) bağlı değil, sayılar 0 görünüyor. Bağlanınca tüm ekranlar gerçek veriyle dolar.</span>
+          <span><b>Backend bağlı değil</b> — sayılar 0 görünüyor. Bağlanınca tüm ekranlar gerçek veriyle dolar.</span>
           <a className="db-cta" href="https://github.com/ahyazgan/tactic11#-canlıya-alma-3-dakika" target="_blank" rel="noreferrer">Nasıl bağlanır?</a>
+        </div>
+      )}
+
+      {dbEmpty && (
+        <div style={{ marginBottom: 16 }}>
+          <EmptyState
+            title="Sistem hazır — ama henüz veri yok"
+            description="Backend çalışıyor, veritabanı boş. Bir ligin maç verisini çekince form, rating, tahmin ve rakip analizi ekranları dolar. Kurulum ~2 dakika sürer, terminal gerekmez."
+          />
         </div>
       )}
 
