@@ -9,6 +9,27 @@
 
 ## Now (current session — work top to bottom, don't pause between items)
 
+### Usability sprint — "sistemi kullanılabilir hale getirme" (2026-07-03 değerlendirmesi)
+> Teşhis: özellik genişliği (88 engine, ~50 sayfa) kullanılabilirliğin önünde.
+> Gerçek engel 4 şey: (1) veri yolu fixture/demo'da kalıyor, (2) ilk girişte
+> boş ekran + nereden başlayacağını bilememe, (3) navigasyon çekirdek akışı
+> boğuyor, (4) ürün kullanıcıya gitmiyor (pull-only). Sıra buna göre.
+
+- [ ] Gerçek veri yolu: API-Football key ile Süper Lig günlük sync'i Render'da (cron/worker), `USE_FIXTURES=false` prod profili
+  Done when: `job_runs`'ta sync_league günlük yeşil, `/admin/db-stats` gerçek maç sayısı gösterir.
+- [ ] Onboarding sihirbazı: ilk giriş → lig+takım seç → sync tetikle → ilerleme göstergesi → dolu Overview'a in
+  Done when: boş DB'li yeni tenant, hiç terminal/cURL görmeden ~5 dk'da dolu ekrana ulaşır.
+- [ ] Navigasyon budama: ~50 sayfa → çekirdek haftalık döngü (Overview, Kadro/Yük, Rakip/Prematch, Canlı Maç, Kararlar, Performans, Raporlar, Admin); kalanı "Labs" grubu/feature-flag arkasına
+  Done when: sidebar tek ekrana sığar, her rol (coach/analyst) ilk bakışta nereye gideceğini bilir.
+- [ ] Boş-durum standardı: verisi olmayan her core sayfa boş tablo yerine "veri nasıl gelir" açıklaması + CTA gösterir
+  Done when: core sayfaların hiçbirinde boş tablo / NaN / sessiz spinner yok.
+- [ ] Haftalık digest e-postası: SMTP konfigürasyonuyla `weekly_digest` çıktısı gerçek posta kutusuna gider (push, pull değil)
+  Done when: cron tetikli digest gerçek bir adrese düşer, içinde o haftanın 3 ana bulgusu var.
+- [ ] "Sistemin sicili" sayfası: backtest + kalibrasyon çıktısı UI'da güven kanıtı olarak (hit-rate, Brier, ECE — son sezon)
+  Done when: /calibration verisi olan ligde sayı gösterir, olmayan ligde ne gerektiğini söyler.
+- [ ] PILOT.md 30-dk demo akışını uçtan uca kendin koş, takılan her adımı düzelt
+  Done when: temiz makinede clone → compose up → demo → dashboard akışı dokümandaki gibi tek seferde geçer.
+
 - [x] Mobile sidebar drawer  (ba07618)
   Done when: drawer opens/closes on mobile breakpoints, nav items reachable, tsc+build clean, committed.
 - [x] Decisions API load-perf cache  (b2c55d6)
