@@ -338,22 +338,14 @@ register(JobSpec(
 ))
 
 
-def weekly_digest_email_handler(
-    *, league_external_id: int, lookback_days: int = 7,
-    recipient: str | None = None,
-) -> None:
-    """Haftalık digest'i üret VE e-posta ile gönder (push teslimat).
+def _run_weekly_digest_and_format(
+    *, league_external_id: int, lookback_days: int,
+) -> str:
+    """Digest'i üret, agent_outputs'a yaz, teslimat metnini döndür.
 
-    run_weekly_digest'ten farkı: çıktı agent_outputs'a yazıldıktan sonra
-    EmailChannel üzerinden gerçek posta kutusuna gider — ürün kullanıcıya
-    gelir, kullanıcı siteyi açmak zorunda kalmaz. SMTP env'leri boşsa kanal
-    stub modda loglar (sistem düşmez). Cron/scheduler örneği:
-
-        {"job": "weekly_digest_email", "at": "08:00",
-         "kwargs": {"league_external_id": 203}}   # pazartesileri anlamlı
+    İlk satır e-posta konusu olur (EmailChannel sözleşmesi); aynı metin
+    Telegram/WhatsApp'ta düz mesaj olarak gider.
     """
-    from app.notifications.email import EmailChannel
-
     agent = WeeklyDigestAgent()
     with SessionLocal() as session:
         result = agent.run(session, context={
@@ -391,8 +383,29 @@ def weekly_digest_email_handler(
             f"  {m.get('home')} vs {m.get('away')} — {str(m.get('kickoff', ''))[:16]}"
             for m in upcoming[:5]
         ]
+    return "\n".join(lines)
 
-    outcome = EmailChannel().send("\n".join(lines), recipient=recipient)
+
+def weekly_digest_email_handler(
+    *, league_external_id: int, lookback_days: int = 7,
+    recipient: str | None = None,
+) -> None:
+    """Haftalık digest'i üret VE e-posta ile gönder (push teslimat).
+
+    run_weekly_digest'ten farkı: çıktı agent_outputs'a yazıldıktan sonra
+    EmailChannel üzerinden gerçek posta kutusuna gider — ürün kullanıcıya
+    gelir, kullanıcı siteyi açmak zorunda kalmaz. SMTP env'leri boşsa kanal
+    stub modda loglar (sistem düşmez). Cron/scheduler örneği:
+
+        {"job": "weekly_digest_email", "at": "08:00",
+         "kwargs": {"league_external_id": 203}}   # pazartesileri anlamlı
+    """
+    from app.notifications.email import EmailChannel
+
+    text = _run_weekly_digest_and_format(
+        league_external_id=league_external_id, lookback_days=lookback_days,
+    )
+    outcome = EmailChannel().send(text, recipient=recipient)
     log.info(
         "job weekly_digest_email: league=%d success=%s stub=%s",
         league_external_id, outcome.success, outcome.stub,
@@ -405,6 +418,43 @@ register(JobSpec(
     description=(
         "Haftalık digest'i üret + e-posta ile GÖNDER (SMTP env boşsa stub). "
         "Haftada bir (örn. Pzt 08:00) zamanlayın."
+    ),
+))
+
+
+def weekly_digest_notify_handler(
+    *, league_external_id: int, lookback_days: int = 7,
+) -> None:
+    """Haftalık digest'i KONFIGÜRE TÜM kanallara gönder (push teslimat).
+
+    Telegram + WhatsApp + e-posta — env'i dolu olan kanal gerçek gönderir,
+    boş olan stub loglar; bir kanalın hatası diğerlerini bloklamaz
+    (Notifier.send_all). Tek kanal (yalnız e-posta) istiyorsanız
+    weekly_digest_email kullanın.
+    """
+    from app.notifications import build_default_notifier
+
+    text = _run_weekly_digest_and_format(
+        league_external_id=league_external_id, lookback_days=lookback_days,
+    )
+    notifier = build_default_notifier()
+    results = notifier.send_all(text)
+    summary = ", ".join(
+        f"{name}={'stub' if r.stub else ('ok' if r.success else 'FAIL')}"
+        for name, r in results.items()
+    )
+    log.info(
+        "job weekly_digest_notify: league=%d kanallar: %s",
+        league_external_id, summary,
+    )
+
+
+register(JobSpec(
+    name="weekly_digest_notify",
+    handler=weekly_digest_notify_handler,
+    description=(
+        "Haftalık digest'i konfigüre TÜM kanallara gönder (Telegram/"
+        "WhatsApp/e-posta; env'i boş kanal stub). Haftada bir zamanlayın."
     ),
 ))
 

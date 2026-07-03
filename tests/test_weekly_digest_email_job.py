@@ -48,3 +48,33 @@ def test_weekly_digest_email_sends_formatted_text(session, monkeypatch):
     first_line = sent[0]["text"].splitlines()[0]
     assert "203" in first_line
     assert "Haftalık" in first_line
+
+
+def test_weekly_digest_notify_sends_to_all_channels(session, monkeypatch):
+    monkeypatch.setattr(jobs_module, "SessionLocal", lambda: _CtxSession(session))
+
+    sent: list[str] = []
+
+    class _FakeNotifier:
+        def send_all(self, text, *, timeout_seconds=10.0):
+            sent.append(text)
+            return {
+                "telegram": NotificationResult(channel="telegram", success=True, stub=True),
+                "email": NotificationResult(channel="email", success=True, stub=True),
+            }
+
+    import app.notifications as notifications_module
+    monkeypatch.setattr(
+        notifications_module, "build_default_notifier", lambda: _FakeNotifier(),
+    )
+
+    jobs_module.weekly_digest_notify_handler(league_external_id=203)
+
+    assert len(sent) == 1
+    assert "203" in sent[0].splitlines()[0]
+
+
+def test_weekly_digest_notify_registered():
+    spec = get("weekly_digest_notify")
+    assert callable(spec.handler)
+    assert "kanal" in spec.description.lower()
