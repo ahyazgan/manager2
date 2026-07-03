@@ -131,11 +131,37 @@ _TAGS_METADATA = [
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
-    """Graceful shutdown: SIGTERM/deploy'da DB havuzunu temiz kapat.
+    """Startup: opsiyonel in-process scheduler. Shutdown: DB havuzunu kapat.
+
+    ENABLE_SCHEDULER=true → günlük job'lar (SCHEDULER_SCHEDULE) API prosesi
+    içinde daemon thread olarak koşar; ayrı cron kurulamayan tek-servis
+    deploy'lar (Render free tier gibi) için gerçek veri yolunu açar.
+    Çok-replica deploy'da kapalı tutun.
 
     Uvicorn/gunicorn SIGTERM'i devam eden istekleri bitirip lifespan'i
-    sonlandırır; burada connection pool dispose edilir (kopuk bağlantı yok)."""
+    sonlandırır; scheduler durdurulur + connection pool dispose edilir."""
+    stop_event = None
+    scheduler_thread = None
+    if get_settings().enable_scheduler:
+        import threading
+
+        from app.scheduler.daemon import run_daemon
+
+        stop_event = threading.Event()
+        scheduler_thread = threading.Thread(
+            target=run_daemon,
+            kwargs={
+                "interval_seconds": get_settings().scheduler_interval_seconds,
+                "stop_event": stop_event,
+            },
+            name="in-process-scheduler",
+            daemon=True,
+        )
+        scheduler_thread.start()
     yield
+    if stop_event is not None:
+        stop_event.set()
+        scheduler_thread.join(timeout=5)
     engine.dispose()
 
 

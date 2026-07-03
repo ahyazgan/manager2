@@ -17,6 +17,12 @@ Frontend (ekranlar) Vercel'de canlı. Backend'i (veri sunucusu + DB) açmak içi
 2. **Vercel:** Projen → **Settings → Environment Variables** → ekle:
    `API_BASE_URL = <Render URL'i>` *(sonunda `/` YOK)* → **Deployments → Redeploy**.
 3. **Giriş:** `admin@besiktas-demo` / `demo-password-1234` → ekranlar gerçek veriyle dolar.
+4. **Gerçek veri (önerilir):** Render → `tactic11-api` → **Environment** →
+   `API_FOOTBALL_KEY` değerini gir + `USE_FIXTURES=false` yap → Save.
+   In-process scheduler (blueprint'te `ENABLE_SCHEDULER=true` hazır) her sabah
+   06:00'da Süper Lig'i sync'ler — ayrı cron servisi gerekmez. İlk veriyi hemen
+   çekmek için Render **Shell** sekmesinde:
+   `python scripts/run_job.py sync_league --league 203 --season 2025`.
 
 > Düğme repoyu Render'a bağlamak için GitHub yetkisi isteyebilir. Detay:
 > [`DEPLOYMENT.md`](DEPLOYMENT.md).

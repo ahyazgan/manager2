@@ -40,3 +40,15 @@ services:
         value: INFO
       - key: API_FOOTBALL_BASE_URL
         value: https://v3.football.api-sports.io
+      # ---- Gerçek veri yolu ----
+      # 1) API_FOOTBALL_KEY'e anahtarını gir (apply sırasında sorulur; boş
+      #    bırakılırsa demo/fixture modunda kalır).
+      # 2) USE_FIXTURES'ı "false" yap.
+      # In-process scheduler her gün 06:00'da Süper Lig sync + 06:30 brief
+      # koşturur — ayrı cron servisi gerekmez.
+      - key: API_FOOTBALL_KEY
+        sync: false
+      - key: ENABLE_SCHEDULER
+        value: "true"
+      - key: SCHEDULER_SCHEDULE
+        value: '[{"job":"sync_league","at":"06:00","kwargs":{"league_id":203,"season":2025}},{"job":"reconcile_predictions","at":"04:00"},{"job":"daily_decision_brief","at":"06:30"}]'

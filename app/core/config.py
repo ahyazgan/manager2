@@ -148,6 +148,14 @@ class Settings(BaseSettings):
     )
     # Prometheus /metrics — prometheus-client kuruluysa aktif.
     prometheus_enabled: bool = Field(default=True, alias="PROMETHEUS_ENABLED")
+    # In-process scheduler — tek-servis deploy'larda (Render free tier gibi)
+    # ayrı cron/daemon kurulamıyorsa günlük job'lar API prosesi içinde koşar.
+    # Zamanlama yine SCHEDULER_SCHEDULE ile; çok-replica'da KAPALI tutun
+    # (çift-koşu koruması job_runs üzerinden var ama replica yarışı gereksiz).
+    enable_scheduler: bool = Field(default=False, alias="ENABLE_SCHEDULER")
+    scheduler_interval_seconds: int = Field(
+        default=60, alias="SCHEDULER_INTERVAL_SECONDS"
+    )
     # Kota uyarı eşiği (0..1) — bu fraksiyona ulaşınca WARNING log
     # Default 0.8 = %80. 0.6 → daha erken uyarı; 0.9 → daha geç.
     quota_warn_fraction: float = Field(

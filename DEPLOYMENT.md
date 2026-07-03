@@ -221,6 +221,21 @@ sudo systemctl status tactic11-api
 
 Nginx önünde reverse proxy + TLS önerilir (`proxy_pass http://127.0.0.1:8000`).
 
+### 4a) Cron kurulamıyorsa: in-process scheduler
+
+Tek-servis deploy'larda (Render free tier, tek container) ayrı cron/daemon
+kurulamaz. `ENABLE_SCHEDULER=true` set edilirse `SCHEDULER_SCHEDULE`'daki
+job'lar API prosesi içinde daemon thread olarak koşar:
+
+```bash
+ENABLE_SCHEDULER=true
+SCHEDULER_SCHEDULE=[{"job":"sync_league","at":"06:00","kwargs":{"league_id":203,"season":2025}},{"job":"reconcile_predictions","at":"04:00"},{"job":"daily_decision_brief","at":"06:30"}]
+```
+
+Çift-koşu koruması `job_runs` üzerinden (bugün planlanan saatten sonra koşu
+varsa tekrar koşmaz). Çok-replica deploy'da bu bayrağı KAPALI tutup aşağıdaki
+klasik cron'u kullanın.
+
 ### 4) Cron (`crontab -e` — tactic11 kullanıcısı)
 ```cron
 # 06:00 UTC — Süper Lig sync (1. iş — veri tazele)
