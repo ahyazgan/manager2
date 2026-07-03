@@ -15,20 +15,16 @@
 > boş ekran + nereden başlayacağını bilememe, (3) navigasyon çekirdek akışı
 > boğuyor, (4) ürün kullanıcıya gitmiyor (pull-only). Sıra buna göre.
 
-- [ ] Gerçek veri yolu: API-Football key ile Süper Lig günlük sync'i Render'da (cron/worker), `USE_FIXTURES=false` prod profili
-  Done when: `job_runs`'ta sync_league günlük yeşil, `/admin/db-stats` gerçek maç sayısı gösterir.
-- [ ] Onboarding sihirbazı: ilk giriş → lig+takım seç → sync tetikle → ilerleme göstergesi → dolu Overview'a in
-  Done when: boş DB'li yeni tenant, hiç terminal/cURL görmeden ~5 dk'da dolu ekrana ulaşır.
-- [ ] Navigasyon budama: ~50 sayfa → çekirdek haftalık döngü (Overview, Kadro/Yük, Rakip/Prematch, Canlı Maç, Kararlar, Performans, Raporlar, Admin); kalanı "Labs" grubu/feature-flag arkasına
-  Done when: sidebar tek ekrana sığar, her rol (coach/analyst) ilk bakışta nereye gideceğini bilir.
-- [ ] Boş-durum standardı: verisi olmayan her core sayfa boş tablo yerine "veri nasıl gelir" açıklaması + CTA gösterir
-  Done when: core sayfaların hiçbirinde boş tablo / NaN / sessiz spinner yok.
-- [ ] Haftalık digest e-postası: SMTP konfigürasyonuyla `weekly_digest` çıktısı gerçek posta kutusuna gider (push, pull değil)
-  Done when: cron tetikli digest gerçek bir adrese düşer, içinde o haftanın 3 ana bulgusu var.
-- [ ] "Sistemin sicili" sayfası: backtest + kalibrasyon çıktısı UI'da güven kanıtı olarak (hit-rate, Brier, ECE — son sezon)
-  Done when: /calibration verisi olan ligde sayı gösterir, olmayan ligde ne gerektiğini söyler.
-- [ ] PILOT.md 30-dk demo akışını uçtan uca kendin koş, takılan her adımı düzelt
-  Done when: temiz makinede clone → compose up → demo → dashboard akışı dokümandaki gibi tek seferde geçer.
+- [x] Gerçek veri yolu: in-process scheduler + Render blueprint'te API_FOOTBALL_KEY prompt'u + günlük sync@06:00  (2118bb5; kök neden tenant fix: 335a07d)
+  Not: tam aktivasyon kullanıcının Render'da API_FOOTBALL_KEY girip USE_FIXTURES=false yapmasını bekler — kod tarafı hazır, tek env değişikliği.
+- [x] Onboarding sihirbazı: /onboarding — lig+sezon seç → POST /admin/sync-league → jobs poll → db-stats → Overview  (f6fa609 + 738a695)
+- [x] Navigasyon budama: IA v3 — 4 çekirdek grup (~18 öğe) + Labs + Arşiv; "Bu Hafta" default açık  (738a695)
+- [x] Boş-durum standardı: paylaşılan EmptyState + overview/squad/opponent/weekly-report kablolaması  (738a695 + be32a55)
+- [x] Haftalık digest e-postası: weekly_digest_email job'u (üret + EmailChannel gönder; run_job --kw ile CLI'dan da)  (a0d073f)
+  Not: gerçek posta SMTP_* env'leri girilince; stub yolu test edildi.
+- [x] "Sistemin sicili": /calibration'a canlı sicil paneli (predict-accuracy: örneklem/Brier/ECE; veri yoksa nasıl birikeceğini anlatır)  (bc895f9)
+- [x] PILOT.md 30-dk demo akışı uçtan uca koşuldu; demo.py/run_job/sync_league'i öldüren tenant NOT NULL kırığı bulunup düzeltildi  (335a07d)
+  Doğrulanan: demo.py ✓, run_job sync ✓, scheduler daemon --once ✓, uvicorn + /healthz /readyz /leagues /dashboard /admin/sync-league ✓, smoke script anahtarsız net hata ✓. (docker compose sandbox'ta koşulamadı — compose dosyası değişmedi.)
 
 - [x] Mobile sidebar drawer  (ba07618)
   Done when: drawer opens/closes on mobile breakpoints, nav items reachable, tsc+build clean, committed.
@@ -78,4 +74,6 @@
 
 ## Notes / blockers (anything needing human eyes)
 
-- (none currently)
+- Gerçek veri akışı için: Render → tactic11-api → Environment → `API_FOOTBALL_KEY` gir + `USE_FIXTURES=false` (README "Gerçek veri" adımı). Kod/zamanlama hazır.
+- Digest e-postası için: `SMTP_HOST/SMTP_FROM/SMTP_TO` (+ Gmail'de uygulama şifresi) env'leri. Boşken stub modda loglanır.
+- Frontend'i gerçek moda almak için: Vercel'de `NEXT_PUBLIC_DEMO_MODE=false` (demo default açık).

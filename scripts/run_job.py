@@ -4,11 +4,15 @@ Kullanım:
     python scripts/run_job.py --list
     python scripts/run_job.py sync_league --league 203 --season 2024
     python scripts/run_job.py sync_league --league 203 --season 2024 --max-attempts 5
+    # Diğer job'lara keyword argüman: --kw ad=değer (değer JSON olarak çözülür)
+    python scripts/run_job.py weekly_digest_email --kw league_external_id=203
+    python scripts/run_job.py run_weekly_digest --kw league_external_id=203 --kw lookback_days=14
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -61,9 +65,21 @@ def _parse_job_args(job_name: str, extra: list[str]) -> dict:
         sub.add_argument("--last", type=int, default=10)
         ns = sub.parse_args(extra)
         return {"league_id": ns.league, "season": ns.season, "last": ns.last}
-    if extra:
-        raise SystemExit(f"{job_name} için ek argüman beklenmiyordu: {extra}")
-    return {}
+    # Generic yol: her job `--kw ad=değer` alır (değer önce JSON denenip
+    # çözülür: 203→int, true→bool, "x"→str; çözülmezse düz string kalır).
+    sub = argparse.ArgumentParser(prog=f"run_job {job_name}")
+    sub.add_argument("--kw", action="append", default=[], metavar="AD=DEĞER")
+    ns = sub.parse_args(extra)
+    kwargs: dict = {}
+    for item in ns.kw:
+        key, sep, raw = item.partition("=")
+        if not sep or not key:
+            raise SystemExit(f"--kw formatı ad=değer olmalı: {item!r}")
+        try:
+            kwargs[key] = json.loads(raw)
+        except json.JSONDecodeError:
+            kwargs[key] = raw
+    return kwargs
 
 
 if __name__ == "__main__":
