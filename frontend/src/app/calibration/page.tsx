@@ -15,6 +15,7 @@ import { computeCalibration, predictorData } from "@/lib/calibration";
 import { engineLedgers } from "@/lib/decision-ledger";
 import { ConsoleShell } from "../_console/shell";
 import { CalibrationBody, FixturePredictor, DecisionLedger, AppliedActions, EngineRecord } from "../_console/calibration";
+import { LiveRecordPanel } from "../_console/live-record";
 
 export default function CalibrationPage() {
   const report = computeCalibration();
@@ -54,6 +55,9 @@ export default function CalibrationPage() {
       right={right}
     >
       <CalibrationBody report={report} />
+
+      {/* Bu deploy'un KENDİ tahmin sicili — backend reconciled predictions */}
+      <LiveRecordPanel />
 
       {/* Canlı tahmin — doğrulanmış model, gerçek takımlar */}
       <div className="st"><h2>Doğrulanmış Model — Canlı Tahmin</h2><span className="ep">öğrenilmiş gerçek takım güçleriyle · bir eşleşme seç</span></div>
