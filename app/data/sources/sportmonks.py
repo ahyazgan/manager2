@@ -335,7 +335,7 @@ class Sportmonks(DataSource):
         log.info("sportmonks GET fixtures/between team=%d", team_id)
         with httpx.Client(timeout=s.http_timeout_seconds) as client:
             while True:
-                params = {
+                params: dict[str, str | int] = {
                     "api_token": self._key,
                     "include": self.SCHEDULE_INCLUDE,
                     "page": page,
