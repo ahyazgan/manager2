@@ -210,6 +210,55 @@ def performance_report_pdf(
     )
 
 
+MAX_SCOUT_REPORTS_PER_PDF = 50
+
+
+@router.post("/reports/scout/pdf")
+def scout_report_pdf(
+    payload: dict[str, Any],
+) -> Response:
+    """Skaut gözlem raporlarından PDF üret (scout_report_generator export'u).
+
+    payload: {
+      "reports": [{player, pos, age, club, scout, date, rating,
+                   watches, rec, summary}, ...],   # 1..50
+      "club_name": str (ops), "generated_at": "YYYY-MM-DD" (ops)
+    }
+    """
+    _ensure_reportlab()
+
+    reports = payload.get("reports") or []
+    if not isinstance(reports, list) or not reports:
+        raise HTTPException(status_code=400, detail="reports listesi boş")
+    if len(reports) > MAX_SCOUT_REPORTS_PER_PDF:
+        raise HTTPException(
+            status_code=400,
+            detail=f"en fazla {MAX_SCOUT_REPORTS_PER_PDF} rapor tek PDF'e girer",
+        )
+
+    from app.reports.pdf import build_scout_report_pdf
+
+    try:
+        pdf_bytes = build_scout_report_pdf(
+            reports=[dict(r) for r in reports],
+            club_name=payload.get("club_name"),
+            generated_at=payload.get("generated_at"),
+        )
+    except ReportlabNotInstalled as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'inline; filename="skaut_raporlari.pdf"',
+            "X-Report-Subject": f"scout:{len(reports)}",
+        },
+    )
+
+
 @router.post("/reports/agent-outputs/{output_id}/share")
 def create_share_link(
     output_id: int,

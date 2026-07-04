@@ -20,11 +20,12 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -163,15 +164,25 @@ def tick(
 def run_daemon(
     *, interval_seconds: int = 30, once: bool = False,
     schedule: list[ScheduleEntry] | None = None,
+    stop_event: threading.Event | None = None,
 ) -> None:
-    """Daemon döngüsü. once=True → tek tick (cron/Görev Zamanlayıcı modu)."""
+    """Daemon döngüsü. once=True → tek tick (cron/Görev Zamanlayıcı modu).
+
+    stop_event verilirse set edildiğinde döngü bir sonraki uyanışta biter —
+    API prosesi içinde thread olarak koşarken graceful shutdown için
+    (bkz. app/api/main.py lifespan + ENABLE_SCHEDULER).
+    """
     sched = schedule if schedule is not None else parse_schedule(os.environ.get(ENV_VAR))
     log.info(
         "scheduler daemon başladı: %d entry — %s",
         len(sched), ", ".join(f"{e.job}@{e.at}" for e in sched),
     )
-    while True:
+    while stop_event is None or not stop_event.is_set():
         tick(sched)
         if once:
             return
-        time.sleep(interval_seconds)
+        if stop_event is None:
+            time.sleep(interval_seconds)
+        elif stop_event.wait(interval_seconds):
+            return
+    log.info("scheduler daemon durdu (stop_event)")

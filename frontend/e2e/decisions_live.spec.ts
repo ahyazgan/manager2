@@ -10,25 +10,25 @@ test.describe("Decisions live (DEMO_MODE)", () => {
   test("renders primary action banner + engine cards", async ({ page }) => {
     await page.goto("/decisions/live");
     // ŞİMDİ banner
-    await expect(page.getByText("ŞİMDİ ŞUNU YAP")).toBeVisible();
+    await expect(page.getByRole("main").getByText("ŞİMDİ ŞUNU YAP", { exact: true })).toBeVisible();
     // En az 4 engine kartı (demo seed: 80. dk → closing high, momentum opp, foul high, star starved)
-    await expect(page.getByText("Kapanış reçetesi")).toBeVisible();
-    await expect(page.getByText("Momentum")).toBeVisible();
-    await expect(page.getByText("Yıldız beslemesi")).toBeVisible();
-    await expect(page.getByText("Faul ritmi + hakem")).toBeVisible();
+    await expect(page.getByText("Kapanış reçetesi").first()).toBeVisible();
+    await expect(page.getByText("Momentum").first()).toBeVisible();
+    await expect(page.getByText("Yıldız beslemesi").first()).toBeVisible();
+    await expect(page.getByText("Faul ritmi + hakem").first()).toBeVisible();
     // Aciliyet rozet (yüksek/orta)
-    await expect(page.getByText("oyun yönetimi")).toBeVisible();
+    await expect(page.getByText("oyun yönetimi").first()).toBeVisible();
   });
 
   test("minute slider changes closing recipe", async ({ page }) => {
     await page.goto("/decisions/live");
     // Default 80. dk → "yükselt" tempo (berabere son 15 dk)
-    await expect(page.getByText(/tempo: .*yükselt/i)).toBeVisible();
+    await expect(page.getByText(/tempo: .*yükselt/i).first()).toBeVisible();
     // Slider'ı erken evreye çek
     const slider = page.locator('input[type="range"]');
     await slider.fill("60");
     // 60. dk berabere → "normal" tempo
-    await expect(page.getByText(/tempo: .*normal/i)).toBeVisible({
+    await expect(page.getByText(/tempo: .*normal/i).first()).toBeVisible({
       timeout: 3000,
     });
   });
@@ -80,12 +80,12 @@ test.describe("Decisions live (DEMO_MODE)", () => {
     const slider = page.locator('input[type="range"]');
     // Early (60): banner null, "izleme modu" mesajı
     await slider.fill("60");
-    await expect(page.getByText(/izleme modu|net karar yok/i)).toBeVisible();
+    await expect(page.getByText(/izleme modu|net karar yok/i).first()).toBeVisible();
     // Late (80): "Berabere · son 15 dk"
     await slider.fill("80");
-    await expect(page.getByText(/son 15 dk/i)).toBeVisible();
+    await expect(page.getByText(/son 15 dk/i).first()).toBeVisible();
     // Stoppage (92): "uzatma → acil"
     await slider.fill("92");
-    await expect(page.getByText(/uzatma|acil/i)).toBeVisible();
+    await expect(page.getByText(/uzatma|acil/i).first()).toBeVisible();
   });
 });

@@ -19,6 +19,7 @@ from typing import Any
 from app.core.logging import get_logger
 from app.db import models
 from app.db.session import SessionLocal
+from app.db.tenant_context import default_tenant_fallback
 from app.scheduler.registry import get as get_spec
 
 log = get_logger(__name__)
@@ -40,6 +41,19 @@ def run_job(
     name: str,
     *,
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+    **kwargs: Any,
+) -> models.JobRun:
+    # CLI/cron yolunda tenant context set edilmez; default tenant'a düşmezsek
+    # job_runs INSERT'i (ve handler'ların yazdığı her satır) tenant_id NOT NULL
+    # şemasında IntegrityError ile ölür. Request yolunda context zaten set'li.
+    with default_tenant_fallback():
+        return _run_job_with_audit(name, max_attempts=max_attempts, **kwargs)
+
+
+def _run_job_with_audit(
+    name: str,
+    *,
+    max_attempts: int,
     **kwargs: Any,
 ) -> models.JobRun:
     spec = get_spec(name)

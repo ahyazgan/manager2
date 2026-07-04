@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 # Protokol başına referans aralıkları (elit Süper Lig düzeyi).
-REFERENCE = {
+# Değerler heterojen (float/str/bool) — Any ile tiplenir, caller float()/str() cast'ler.
+REFERENCE: dict[str, dict[str, Any]] = {
     "sprint_10m":      {"low": 1.90, "high": 1.70, "unit": "sn",     "lower_is_better": True},
     "sprint_30m":      {"low": 4.30, "high": 3.90, "unit": "sn",     "lower_is_better": True},
     "ttest_agility":   {"low": 11.5, "high": 9.50, "unit": "sn",     "lower_is_better": True},

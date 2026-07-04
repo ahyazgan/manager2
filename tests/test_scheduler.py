@@ -129,3 +129,50 @@ def test_base_exception_still_writes_audit(session, monkeypatch):
     assert row.attempts == 1
     assert "KeyboardInterrupt" in row.error
     assert row.ended_at is not None
+
+
+def test_run_job_fills_default_tenant_without_context(session, monkeypatch):
+    # CLI/cron yolu: tenant context yokken job_runs satırı default tenant'a
+    # yazılmalı — tenant_id NOT NULL prod şemasında IntegrityError regresyonu.
+    from app.db.tenant_context import DEFAULT_TENANT_ID, set_current_tenant_id
+
+    def handler():
+        pass
+
+    _register_once("test_tenant_fallback", handler)
+    _patch_session(monkeypatch, session)
+    set_current_tenant_id(None)
+
+    result = runner_module.run_job("test_tenant_fallback")
+    assert result.status == "success"
+    assert result.tenant_id == DEFAULT_TENANT_ID
+
+
+def test_run_job_respects_existing_tenant_context(session, monkeypatch):
+    from app.db.tenant_context import set_current_tenant_id
+
+    def handler():
+        pass
+
+    _register_once("test_tenant_keep", handler)
+    _patch_session(monkeypatch, session)
+    set_current_tenant_id("t-ozel")
+    try:
+        result = runner_module.run_job("test_tenant_keep")
+        assert result.tenant_id == "t-ozel"
+    finally:
+        set_current_tenant_id(None)
+
+
+def test_default_tenant_fallback_restores_context():
+    from app.db.tenant_context import (
+        DEFAULT_TENANT_ID,
+        current_tenant_id,
+        default_tenant_fallback,
+        set_current_tenant_id,
+    )
+
+    set_current_tenant_id(None)
+    with default_tenant_fallback():
+        assert current_tenant_id() == DEFAULT_TENANT_ID
+    assert current_tenant_id() is None

@@ -110,23 +110,6 @@ input[type="submit"][data-touch="true"] {
   h2 { font-size: 1rem !important; }
 }
 
-/* PWA: yalnız TELEFON dikeyken yatay çevirmeyi iste.
-   Tabletler (≥768px) dikeyde de çalışır — çekmece menü + tek akış düzen. */
-@media (orientation: portrait) and (max-width: 767px) {
-  body::before {
-    content: "↻  Lütfen cihazınızı yatay çevirin";
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 28px;
-    background: #0c0e14;
-    color: #e8ebf2;
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 1.5;
-  }
-}
+/* NOT (usability sprint): eski "telefonu yatay çevirin" tam-ekran katmanı
+   kaldırıldı — mobil çekmece menü (drawer) telefon dikeyini destekliyor;
+   katman tüm sayfaları kapatıp navigasyonu bloke ediyordu (e2e'yi de). */

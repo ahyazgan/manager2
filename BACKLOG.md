@@ -9,6 +9,23 @@
 
 ## Now (current session — work top to bottom, don't pause between items)
 
+### Usability sprint — "sistemi kullanılabilir hale getirme" (2026-07-03 değerlendirmesi)
+> Teşhis: özellik genişliği (88 engine, ~50 sayfa) kullanılabilirliğin önünde.
+> Gerçek engel 4 şey: (1) veri yolu fixture/demo'da kalıyor, (2) ilk girişte
+> boş ekran + nereden başlayacağını bilememe, (3) navigasyon çekirdek akışı
+> boğuyor, (4) ürün kullanıcıya gitmiyor (pull-only). Sıra buna göre.
+
+- [x] Gerçek veri yolu: in-process scheduler + Render blueprint'te API_FOOTBALL_KEY prompt'u + günlük sync@06:00  (2118bb5; kök neden tenant fix: 335a07d)
+  Not: tam aktivasyon kullanıcının Render'da API_FOOTBALL_KEY girip USE_FIXTURES=false yapmasını bekler — kod tarafı hazır, tek env değişikliği.
+- [x] Onboarding sihirbazı: /onboarding — lig+sezon seç → POST /admin/sync-league → jobs poll → db-stats → Overview  (f6fa609 + 738a695)
+- [x] Navigasyon budama: IA v3 — 4 çekirdek grup (~18 öğe) + Labs + Arşiv; "Bu Hafta" default açık  (738a695)
+- [x] Boş-durum standardı: paylaşılan EmptyState + overview/squad/opponent/weekly-report kablolaması  (738a695 + be32a55)
+- [x] Haftalık digest e-postası: weekly_digest_email job'u (üret + EmailChannel gönder; run_job --kw ile CLI'dan da)  (a0d073f)
+  Not: gerçek posta SMTP_* env'leri girilince; stub yolu test edildi.
+- [x] "Sistemin sicili": /calibration'a canlı sicil paneli (predict-accuracy: örneklem/Brier/ECE; veri yoksa nasıl birikeceğini anlatır)  (bc895f9)
+- [x] PILOT.md 30-dk demo akışı uçtan uca koşuldu; demo.py/run_job/sync_league'i öldüren tenant NOT NULL kırığı bulunup düzeltildi  (335a07d)
+  Doğrulanan: demo.py ✓, run_job sync ✓, scheduler daemon --once ✓, uvicorn + /healthz /readyz /leagues /dashboard /admin/sync-league ✓, smoke script anahtarsız net hata ✓. (docker compose sandbox'ta koşulamadı — compose dosyası değişmedi.)
+
 - [x] Mobile sidebar drawer  (ba07618)
   Done when: drawer opens/closes on mobile breakpoints, nav items reachable, tsc+build clean, committed.
 - [x] Decisions API load-perf cache  (b2c55d6)
@@ -35,9 +52,9 @@
 
 ## Later (lower priority — only if Now + Next clear)
 
-- [ ] PDF report export for scout_report_generator
-- [ ] Push/email delivery for digests (currently pull-only)
-- [ ] i18n scaffold for English UI
+- [x] PDF report export for scout_report_generator  (22730a9 — build_scout_report_pdf + POST /reports/scout/pdf + UI "PDF indir")
+- [x] Push/email delivery for digests  (a0d073f e-posta + aa77414 weekly_digest_notify tüm kanallar)
+- [x] i18n scaffold for English UI  (sözlük IA v3'e güncellendi, ConsoleShell nav/btabs t() ile çevriliyor, navbar'da TR/EN düğmesi)
 - [x] Security headers (CSP / HSTS / X-Frame-Options / X-Content-Type-Options)  (b067175)
 - [x] Retry + circuit-breaker on external API calls  (868f289)
 - [x] Liveness/readiness split on /health  (pre-existing — /healthz + /readyz)
@@ -57,4 +74,6 @@
 
 ## Notes / blockers (anything needing human eyes)
 
-- (none currently)
+- Gerçek veri akışı için: Render → tactic11-api → Environment → `API_FOOTBALL_KEY` gir + `USE_FIXTURES=false` (README "Gerçek veri" adımı). Kod/zamanlama hazır.
+- Digest e-postası için: `SMTP_HOST/SMTP_FROM/SMTP_TO` (+ Gmail'de uygulama şifresi) env'leri. Boşken stub modda loglanır.
+- Frontend'i gerçek moda almak için: Vercel'de `NEXT_PUBLIC_DEMO_MODE=false` (demo default açık).

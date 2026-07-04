@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -27,6 +27,9 @@ from app.core.logging import get_logger
 from app.data.sources.base import DataSource
 from app.domain import League, LineupEntry, Match, Player, PlayerMatchStats, Team
 from app.sports import football
+
+if TYPE_CHECKING:
+    from app.data.sources._resilience import CircuitBreaker
 
 log = get_logger(__name__)
 
@@ -184,7 +187,7 @@ class Sportmonks(DataSource):
 
     name = _SOURCE_NAME
     # Sınıf-düzeyi devre kesici — pod ömrü boyunca paylaşılır
-    _breaker: object | None = None  # CircuitBreaker; runtime lazy assign
+    _breaker: CircuitBreaker | None = None  # runtime lazy assign
 
     # Tek fixture için yeterli include seti (lineups.details = oyuncu istatistiği,
     # xgfixture = gerçek xG). participants/state/scores/events karar+skor için.
@@ -293,7 +296,7 @@ class Sportmonks(DataSource):
         s = get_settings()
         log.info("sportmonks GET fixtures/%d", fid)
         with httpx.Client(timeout=s.http_timeout_seconds) as client:
-            for attempt in range(2):
+            for _attempt in range(2):
                 params = {"api_token": self._key, "include": self._fixture_include()}
                 r = client.get(url, params=params)
                 if r.status_code == 403 and self._xg_enabled:
@@ -332,7 +335,7 @@ class Sportmonks(DataSource):
         log.info("sportmonks GET fixtures/between team=%d", team_id)
         with httpx.Client(timeout=s.http_timeout_seconds) as client:
             while True:
-                params = {
+                params: dict[str, str | int] = {
                     "api_token": self._key,
                     "include": self.SCHEDULE_INCLUDE,
                     "page": page,

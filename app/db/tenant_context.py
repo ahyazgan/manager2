@@ -40,6 +40,26 @@ def is_bypassed() -> bool:
 
 
 @contextmanager
+def default_tenant_fallback() -> Iterator[None]:
+    """Request dışı yollar (CLI, cron, scheduler) için güvenli varsayılan.
+
+    Tenant context zaten set'liyse dokunmaz; değilse blok süresince
+    DEFAULT_TENANT_ID kullanılır. Böylece `tenant_id NOT NULL` şemasında
+    sync/job INSERT'leri düşmez, tek-tenant deploy'da CLI komutları çalışır.
+    Multi-tenant job'lar kendi tenant'ını `session.info["tenant_id"]` ile
+    set etmeye devam eder (session.info ContextVar'a göre önceliklidir).
+    """
+    if _current_tenant_id.get() is not None:
+        yield
+        return
+    tok = _current_tenant_id.set(DEFAULT_TENANT_ID)
+    try:
+        yield
+    finally:
+        _current_tenant_id.reset(tok)
+
+
+@contextmanager
 def tenant_bypass() -> Iterator[None]:
     """Cross-tenant query yapmak isteyen super-admin için context manager.
 

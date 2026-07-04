@@ -48,6 +48,7 @@ from app.data.ingest import sync_league  # noqa: E402
 from app.data.sources.api_football import APIFootball  # noqa: E402
 from app.data.sources.fixture_tracking import FixtureTrackingSource  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
+from app.db.tenant_context import DEFAULT_TENANT_ID, set_current_tenant_id  # noqa: E402
 from app.engine.fixture_difficulty import OpponentRating, compute_fixture_difficulty  # noqa: E402
 from app.engine.form import compute_form  # noqa: E402
 from app.engine.matchup import compute_matchup  # noqa: E402
@@ -550,6 +551,10 @@ def main() -> None:
         help="Tracking adapter için match_external_id (tests/fixtures/tracking_<id>.json varsa)",
     )
     args = parser.parse_args()
+
+    # CLI yolunda tenant context yok; migration 0011'in seed ettiği default
+    # tenant'a yaz/oku — yoksa tenant_id NOT NULL şemasında sync düşer.
+    set_current_tenant_id(DEFAULT_TENANT_ID)
 
     _maybe_reset(args.reset)
     _alembic_check()

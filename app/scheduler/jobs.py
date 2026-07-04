@@ -338,6 +338,127 @@ register(JobSpec(
 ))
 
 
+def _run_weekly_digest_and_format(
+    *, league_external_id: int, lookback_days: int,
+) -> str:
+    """Digest'i üret, agent_outputs'a yaz, teslimat metnini döndür.
+
+    İlk satır e-posta konusu olur (EmailChannel sözleşmesi); aynı metin
+    Telegram/WhatsApp'ta düz mesaj olarak gider.
+    """
+    agent = WeeklyDigestAgent()
+    with SessionLocal() as session:
+        result = agent.run(session, context={
+            "league_external_id": league_external_id,
+            "lookback_days": lookback_days,
+        })
+        save_agent_output(
+            session, result=result,
+            agent_name=agent.name, agent_version=agent.version,
+        )
+        session.commit()
+
+    out = result.output_json
+    lines = [
+        f"tactic11 — Haftalık Özet (lig {league_external_id})",
+        "",
+        result.summary,
+        "",
+    ]
+    ai_brief = out.get("ai_brief")
+    if ai_brief:
+        lines += [str(ai_brief), ""]
+    form_leaders = out.get("form_leaders") or []
+    if form_leaders:
+        lines.append("Form liderleri:")
+        lines += [
+            f"  {i + 1}. takım {fl.get('team_id')} — ppg {fl.get('points_per_game', '?')}"
+            for i, fl in enumerate(form_leaders[:5])
+        ]
+        lines.append("")
+    upcoming = out.get("upcoming_matches") or []
+    if upcoming:
+        lines.append(f"Yaklaşan {len(upcoming)} maç:")
+        lines += [
+            f"  {m.get('home')} vs {m.get('away')} — {str(m.get('kickoff', ''))[:16]}"
+            for m in upcoming[:5]
+        ]
+    return "\n".join(lines)
+
+
+def weekly_digest_email_handler(
+    *, league_external_id: int, lookback_days: int = 7,
+    recipient: str | None = None,
+) -> None:
+    """Haftalık digest'i üret VE e-posta ile gönder (push teslimat).
+
+    run_weekly_digest'ten farkı: çıktı agent_outputs'a yazıldıktan sonra
+    EmailChannel üzerinden gerçek posta kutusuna gider — ürün kullanıcıya
+    gelir, kullanıcı siteyi açmak zorunda kalmaz. SMTP env'leri boşsa kanal
+    stub modda loglar (sistem düşmez). Cron/scheduler örneği:
+
+        {"job": "weekly_digest_email", "at": "08:00",
+         "kwargs": {"league_external_id": 203}}   # pazartesileri anlamlı
+    """
+    from app.notifications.email import EmailChannel
+
+    text = _run_weekly_digest_and_format(
+        league_external_id=league_external_id, lookback_days=lookback_days,
+    )
+    outcome = EmailChannel().send(text, recipient=recipient)
+    log.info(
+        "job weekly_digest_email: league=%d success=%s stub=%s",
+        league_external_id, outcome.success, outcome.stub,
+    )
+
+
+register(JobSpec(
+    name="weekly_digest_email",
+    handler=weekly_digest_email_handler,
+    description=(
+        "Haftalık digest'i üret + e-posta ile GÖNDER (SMTP env boşsa stub). "
+        "Haftada bir (örn. Pzt 08:00) zamanlayın."
+    ),
+))
+
+
+def weekly_digest_notify_handler(
+    *, league_external_id: int, lookback_days: int = 7,
+) -> None:
+    """Haftalık digest'i KONFIGÜRE TÜM kanallara gönder (push teslimat).
+
+    Telegram + WhatsApp + e-posta — env'i dolu olan kanal gerçek gönderir,
+    boş olan stub loglar; bir kanalın hatası diğerlerini bloklamaz
+    (Notifier.send_all). Tek kanal (yalnız e-posta) istiyorsanız
+    weekly_digest_email kullanın.
+    """
+    from app.notifications import build_default_notifier
+
+    text = _run_weekly_digest_and_format(
+        league_external_id=league_external_id, lookback_days=lookback_days,
+    )
+    notifier = build_default_notifier()
+    results = notifier.send_all(text)
+    summary = ", ".join(
+        f"{name}={'stub' if r.stub else ('ok' if r.success else 'FAIL')}"
+        for name, r in results.items()
+    )
+    log.info(
+        "job weekly_digest_notify: league=%d kanallar: %s",
+        league_external_id, summary,
+    )
+
+
+register(JobSpec(
+    name="weekly_digest_notify",
+    handler=weekly_digest_notify_handler,
+    description=(
+        "Haftalık digest'i konfigüre TÜM kanallara gönder (Telegram/"
+        "WhatsApp/e-posta; env'i boş kanal stub). Haftada bir zamanlayın."
+    ),
+))
+
+
 def run_opponent_scouts_handler() -> None:
     """Tüm takımlar için sıradaki rakip scout raporu."""
     agent = OpponentScoutAgent()

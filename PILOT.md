@@ -101,7 +101,9 @@ yıllık lisans + maintenance modeline geçiş.
 3. `python scripts/api_football_smoke.py --key X --league 203 --season 2024`
    — anahtarınız çalışıyor mu doğrulaması
 4. `curl http://localhost:8000/dashboard` — minimal web dashboard
-5. Sorular + sonraki adım planlaması.
+5. Frontend'de **/onboarding** → lig seç → "Veriyi Çek" — ekranlar terminal
+   gerekmeden dolar (sync arka planda, ilerleme ekranda).
+6. Sorular + sonraki adım planlaması.
 
 İletişim: a.hakan_@hotmail.com
 

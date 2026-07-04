@@ -361,3 +361,106 @@ def build_performance_report_pdf(
 
     doc.build(story)
     return buf.getvalue()
+
+
+# Skaut önerisi → renk (rapor kartındaki karar vurgusu)
+_REC_COLORS = {
+    "İmzala": "#15803d",
+    "İzlemeye devam": "#b45309",
+    "Geç": "#6b7280",
+}
+
+
+def build_scout_report_pdf(
+    *,
+    reports: list[dict[str, Any]],
+    club_name: str | None = None,
+    generated_at: str | datetime | None = None,
+) -> bytes:
+    """Skaut gözlem raporlarından A4 PDF üret (scout_report_generator export'u).
+
+    `reports`: her öğe {player, pos, age, club, scout, date, rating (1-5),
+    watches, rec, summary} — frontend /scout-reports satırlarıyla birebir.
+    Saf builder: DB/HTTP bilmez, caller veri verir, bytes alır.
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise ReportlabNotInstalled(
+            "reportlab kurulu değil — `pip install reportlab>=4.0`",
+        )
+    if not reports:
+        raise ValueError("en az bir skaut raporu gerekli")
+
+    if isinstance(generated_at, datetime):
+        date_str = generated_at.strftime("%Y-%m-%d")
+    else:
+        date_str = generated_at or datetime.utcnow().strftime("%Y-%m-%d")
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=16 * mm, bottomMargin=16 * mm,
+        title="Skaut Raporları",
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "ScoutTitle", parent=styles["Title"],
+        fontSize=17, leading=21, spaceAfter=4,
+    )
+    meta_style = ParagraphStyle(
+        "ScoutMeta", parent=styles["Normal"],
+        fontSize=9, leading=12, textColor=colors.HexColor("#666666"),
+    )
+    body_style = ParagraphStyle(
+        "ScoutBody", parent=styles["Normal"],
+        fontSize=10.5, leading=14, spaceAfter=4,
+    )
+    name_style = ParagraphStyle(
+        "ScoutName", parent=styles["Heading3"],
+        fontSize=12.5, leading=15, spaceBefore=8, spaceAfter=2,
+    )
+
+    story: list[Any] = []
+    header = "Skaut Raporları"
+    if club_name:
+        header = f"{club_name} — {header}"
+    story.append(Paragraph(header, title_style))
+    sign_count = sum(1 for r in reports if str(r.get("rec", "")) == "İmzala")
+    story.append(Paragraph(
+        f"Tarih: {date_str} · {len(reports)} rapor · {sign_count} imza önerisi",
+        meta_style,
+    ))
+    story.append(Spacer(1, 6 * mm))
+
+    for r in reports:
+        rec = str(r.get("rec", "—"))
+        rec_hex = _REC_COLORS.get(rec, "#6b7280")
+        rating = r.get("rating")
+        rating_txt = f"{rating}/5" if rating is not None else "—"
+        story.append(Paragraph(
+            f"{r.get('player', '?')} "
+            f'<font size="9" color="#666666">'
+            f"({r.get('pos', '—')} · {r.get('age', '—')} yaş · {r.get('club', '—')})"
+            f"</font>",
+            name_style,
+        ))
+        story.append(Paragraph(
+            f"Skaut: {r.get('scout', '—')} · {r.get('date', '—')} · "
+            f"Not: <b>{rating_txt}</b> · İzleme: {r.get('watches', '—')} · "
+            f'Öneri: <font color="{rec_hex}"><b>{rec}</b></font>',
+            meta_style,
+        ))
+        summary = str(r.get("summary", "")).strip()
+        if summary:
+            story.append(Paragraph(summary, body_style))
+        story.append(Spacer(1, 2 * mm))
+
+    story.append(Spacer(1, 6 * mm))
+    story.append(Paragraph(
+        "Skaut değerlendirmeleri kişisel veri içerir; kulüp içi kullanım "
+        "amaçlıdır, üçüncü taraflarla paylaşımı kayda tabidir.",
+        meta_style,
+    ))
+
+    doc.build(story)
+    return buf.getvalue()

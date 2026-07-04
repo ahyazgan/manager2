@@ -139,3 +139,57 @@ def test_last_started_today_ignores_other_jobs_and_days(session):
     last = last_started_today(session, "alpha", NOW)
     assert last is not None
     assert (last.hour, last.minute) == (3, 0)
+
+
+# ── run_daemon stop_event (in-process scheduler) ────────────────────────────
+
+def test_run_daemon_stops_on_stop_event():
+    import threading
+
+    from app.scheduler.daemon import run_daemon
+
+    ev = threading.Event()
+    t = threading.Thread(
+        target=run_daemon,
+        kwargs={"interval_seconds": 30, "schedule": [], "stop_event": ev},
+        daemon=True,
+    )
+    t.start()
+    ev.set()
+    t.join(timeout=5)
+    assert not t.is_alive()
+
+
+def test_run_daemon_preset_stop_event_returns_immediately():
+    import threading
+
+    from app.scheduler.daemon import run_daemon
+
+    ev = threading.Event()
+    ev.set()
+    run_daemon(interval_seconds=30, schedule=[], stop_event=ev)  # dönmeli
+
+
+def test_lifespan_starts_and_stops_scheduler_when_enabled(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.api import main as main_module
+    from app.core.config import get_settings
+    from app.scheduler import daemon as daemon_module
+
+    called: dict[str, object] = {}
+
+    def fake_run_daemon(*, interval_seconds, stop_event):
+        called["interval"] = interval_seconds
+        stop_event.wait(5)
+        called["stopped"] = stop_event.is_set()
+
+    monkeypatch.setattr(daemon_module, "run_daemon", fake_run_daemon)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_scheduler", True)
+
+    with TestClient(main_module.app):
+        pass  # startup + shutdown döngüsü
+
+    assert called["interval"] == settings.scheduler_interval_seconds
+    assert called["stopped"] is True
