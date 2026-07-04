@@ -374,10 +374,13 @@ def build_live_digest_prompt(
     ctx = snapshot.get("context") or {}
     primary = (ctx.get("primary") or {}) if isinstance(ctx, dict) else {}
     secondary = (ctx.get("secondary") or []) if isinstance(ctx, dict) else []
-    mom = snapshot.get("momentum") or {}
-    closing = snapshot.get("closing_strategy") or {}
-    fp = snapshot.get("foul_pressure") or {}
-    sf = snapshot.get("star_feed") or {}
+    def _as_dict(v: object) -> dict:
+        return v if isinstance(v, dict) else {}
+
+    mom = _as_dict(snapshot.get("momentum"))
+    closing = _as_dict(snapshot.get("closing_strategy"))
+    fp = _as_dict(snapshot.get("foul_pressure"))
+    sf = _as_dict(snapshot.get("star_feed"))
 
     parts = [
         f"Maç {match_id} · {current_minute:.0f}. dakika · skor {score}.",

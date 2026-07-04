@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -27,6 +27,9 @@ from app.core.logging import get_logger
 from app.data.sources.base import DataSource
 from app.domain import League, LineupEntry, Match, Player, PlayerMatchStats, Team
 from app.sports import football
+
+if TYPE_CHECKING:
+    from app.data.sources._resilience import CircuitBreaker
 
 log = get_logger(__name__)
 
@@ -184,7 +187,7 @@ class Sportmonks(DataSource):
 
     name = _SOURCE_NAME
     # Sınıf-düzeyi devre kesici — pod ömrü boyunca paylaşılır
-    _breaker: object | None = None  # CircuitBreaker; runtime lazy assign
+    _breaker: CircuitBreaker | None = None  # runtime lazy assign
 
     # Tek fixture için yeterli include seti (lineups.details = oyuncu istatistiği,
     # xgfixture = gerçek xG). participants/state/scores/events karar+skor için.

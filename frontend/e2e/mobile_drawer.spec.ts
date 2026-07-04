@@ -35,7 +35,9 @@ test.describe("Mobile drawer (DEMO_MODE)", () => {
     await page.goto("/decisions/track");
     await page.getByRole("button", { name: /Menüyü aç/i }).click();
     // .nav-backdrop element'i overlay
-    await page.locator(".nav-backdrop").click();
+    // Sidebar (260px) soldan açık — backdrop'a sidebar'ın SAĞINDAN tıkla,
+    // merkez nokta sidebar'ın altında kalıyor.
+    await page.locator(".nav-backdrop").click({ position: { x: 350, y: 300 } });
     await expect(page.getByRole("button", { name: /Menüyü aç/i })).toBeVisible();
   });
 });

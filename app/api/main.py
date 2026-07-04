@@ -159,7 +159,7 @@ async def _lifespan(_app: FastAPI):
         )
         scheduler_thread.start()
     yield
-    if stop_event is not None:
+    if stop_event is not None and scheduler_thread is not None:
         stop_event.set()
         scheduler_thread.join(timeout=5)
     engine.dispose()

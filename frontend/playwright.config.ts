@@ -15,7 +15,14 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // Sandbox/pinli-ortam desteği: Playwright browser'ı indiremiyorsa
+        // E2E_CHROMIUM_PATH ile sistemdeki chromium kullanılır (CI'da unset).
+        ...(process.env.E2E_CHROMIUM_PATH
+          ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM_PATH } }
+          : {}),
+      },
     },
   ],
 });

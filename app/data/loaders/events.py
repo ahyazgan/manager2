@@ -34,7 +34,7 @@ class LoadedEvents:
     defensive_actions: list[DefensiveAction]
     shots: list[Shot]
     match_ids: list[int]      # hangi maçlardan çekildiği (audit için)
-    fouls: list[FoulEvent] = field(default_factory=list)  # type: ignore[assignment]
+    fouls: list[FoulEvent] = field(default_factory=list)
 
     @property
     def total(self) -> int:
@@ -52,7 +52,7 @@ def _row_to_pass(row: models.EventRow) -> PassEvent | None:
             minute=row.minute, period=row.period,
             start_x=row.start_x or 0.0, start_y=row.start_y or 0.0,
             end_x=row.end_x or 0.0, end_y=row.end_y or 0.0,
-            pass_type=row.pattern if row.pattern in {  # type: ignore[arg-type]
+            pass_type=row.pattern if row.pattern in {
                 "regular", "long_ball", "through_ball", "cross", "switch",
                 "lay_off", "corner", "free_kick", "throw_in", "goal_kick",
             } else "regular",
@@ -91,7 +91,7 @@ def _row_to_def(row: models.EventRow) -> DefensiveAction | None:
             team_external_id=row.team_external_id or 0,
             minute=row.minute, period=row.period,
             x=row.start_x or 0.0, y=row.start_y or 0.0,
-            action_type=action_type,  # type: ignore[arg-type]
+            action_type=action_type,
             successful=(row.outcome == "successful"),
             possession_id=row.possession_id,
         )
@@ -113,7 +113,7 @@ def _row_to_foul(row: models.EventRow) -> FoulEvent | None:
             team_external_id=row.team_external_id or 0,
             minute=row.minute, period=row.period,
             x=row.start_x or 50.0, y=row.start_y or 50.0,
-            card=card_color,  # type: ignore[arg-type]
+            card=card_color,
             advantage_played=(row.pattern == "advantage"),
             possession_id=row.possession_id,
         )
@@ -135,8 +135,8 @@ def _row_to_shot(row: models.EventRow) -> Shot | None:
             player_external_id=row.player_external_id or 0,
             minute=row.minute,
             x=row.start_x or 0.0, y=row.start_y or 0.0,
-            body_part=body_part,  # type: ignore[arg-type]
-            pattern=pattern,  # type: ignore[arg-type]
+            body_part=body_part,
+            pattern=pattern,
             is_goal=bool(row.is_goal),
             team_external_id=row.team_external_id,
         )

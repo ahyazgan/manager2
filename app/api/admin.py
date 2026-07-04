@@ -3148,12 +3148,12 @@ def decisions_recent_endpoint(
         select(
             models.Decision.outcome, func.count(models.Decision.id),
         ).where(*where).group_by(models.Decision.outcome)
-    ).all())
+    ).tuples().all())
     type_counts = dict(session.execute(
         select(
             models.Decision.decision_type, func.count(models.Decision.id),
         ).where(*where).group_by(models.Decision.decision_type)
-    ).all())
+    ).tuples().all())
 
     positive = int(outcome_counts.get("positive", 0))
     negative = int(outcome_counts.get("negative", 0))
@@ -3233,7 +3233,7 @@ def matches_with_events_endpoint(
         ).where(
             models.EventRow.sport == sport,
         ).group_by(models.EventRow.match_external_id)
-    ).all())
+    ).tuples().all())
     if not event_counts:
         return {"matches": [], "total": 0}
 
@@ -3245,7 +3245,7 @@ def matches_with_events_endpoint(
             models.EventRow.sport == sport,
             models.EventRow.event_type == "foul",
         ).group_by(models.EventRow.match_external_id)
-    ).all())
+    ).tuples().all())
 
     rows = session.execute(
         select(models.Match).where(

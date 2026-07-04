@@ -22,12 +22,15 @@ monkeypatch'leyerek sample fixture'larla parser'ı doğrular.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
 from app.core.logging import get_logger
 from app.domain import Shot
+
+if TYPE_CHECKING:
+    from app.data.sources._resilience import CircuitBreaker
 
 log = get_logger(__name__)
 
@@ -81,7 +84,7 @@ class StatsBombOpen:
 
     name = "statsbomb_open"
     # Sınıf-düzeyi devre kesici — pod ömrü boyunca paylaşılır (runtime lazy assign)
-    _breaker: object | None = None
+    _breaker: CircuitBreaker | None = None
 
     def __init__(self, base_url: str | None = None, timeout: float = HTTP_TIMEOUT):
         self._base_url = (base_url or STATSBOMB_RAW_BASE).rstrip("/")
@@ -193,8 +196,8 @@ def _event_to_shot(event: dict[str, Any], *, match_id: int) -> Shot | None:
             minute=minute,
             x=round(x_100, 2),
             y=round(y_100, 2),
-            body_part=body_part,  # type: ignore[arg-type]
-            pattern=pattern,  # type: ignore[arg-type]
+            body_part=body_part,
+            pattern=pattern,
             is_goal=is_goal,
             team_external_id=team_id,
         )
