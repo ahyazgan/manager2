@@ -361,3 +361,130 @@ def build_performance_report_pdf(
 
     doc.build(story)
     return buf.getvalue()
+
+
+# ── Scout raporu (opponent_scout agent'ı için özel yerleşim) ────────────────
+
+# Bölüm başlıkları: output_json anahtarı → PDF başlığı. Sıra korunur.
+_SCOUT_SECTIONS: tuple[tuple[str, str], ...] = (
+    ("opponent_form", "Rakip Form (son maçlar)"),
+    ("opponent_rating", "Rakip Güç Reytingi"),
+    ("h2h", "Aramızdaki Geçmiş (H2H)"),
+    ("tactical_signals", "Taktik Sinyaller (event-bazlı)"),
+)
+
+
+def build_scout_report_pdf(
+    *,
+    team_external_id: int,
+    agent_version: str,
+    summary: str,
+    output_json: dict[str, Any] | str,
+    updated_at: datetime | None = None,
+) -> bytes:
+    """opponent_scout çıktısından bölümlü A4 scout raporu.
+
+    Genel `build_agent_output_pdf` düz key-value tablo basar; scout raporu
+    iç içe yapıyı bölümlere açar: maç başlığı → AI brief → form → rating →
+    h2h → taktik sinyaller. Bilinmeyen ekstra alanlar sonda genel tabloya
+    düşer (agent şeması evrilse de rapor kırılmaz).
+    """
+    if not REPORTLAB_AVAILABLE:
+        raise ReportlabNotInstalled(
+            "reportlab kurulu değil — `pip install reportlab>=4.0`",
+        )
+    if isinstance(output_json, str):
+        try:
+            data = json.loads(output_json)
+        except json.JSONDecodeError:
+            data = {"raw": output_json}
+    else:
+        data = dict(output_json)
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=20 * mm, rightMargin=20 * mm,
+        topMargin=18 * mm, bottomMargin=18 * mm,
+        title=f"Scout Raporu — takım {team_external_id}",
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "TitleSmall", parent=styles["Title"],
+        fontSize=16, leading=20, spaceAfter=6,
+    )
+    meta_style = ParagraphStyle(
+        "Meta", parent=styles["Normal"],
+        fontSize=9, leading=12, textColor=colors.HexColor("#666666"),
+    )
+    body_style = ParagraphStyle(
+        "Body", parent=styles["Normal"],
+        fontSize=11, leading=15, spaceAfter=8,
+    )
+    section_style = ParagraphStyle(
+        "Section", parent=styles["Heading2"],
+        fontSize=12, leading=15, spaceBefore=6, spaceAfter=4,
+    )
+
+    def _kv_table(payload: dict[str, Any]) -> Table:
+        table_data = [["Alan", "Değer"]]
+        for key, value in _flatten_json(payload):
+            table_data.append([
+                Paragraph(key, styles["BodyText"]),
+                Paragraph(value, styles["BodyText"]),
+            ])
+        table = Table(table_data, colWidths=[55 * mm, 115 * mm], repeatRows=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#222222")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cccccc")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+             [colors.white, colors.HexColor("#f5f5f5")]),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ]))
+        return table
+
+    story: list[Any] = []
+    story.append(Paragraph("Rakip Scout Raporu", title_style))
+
+    nm = data.get("next_match") or {}
+    side = {"home": "ev", "away": "deplasman"}.get(nm.get("my_side"), "?")
+    updated_str = (
+        updated_at.strftime("%Y-%m-%d %H:%M UTC") if updated_at else "—"
+    )
+    story.append(Paragraph(
+        f"Takım: <b>#{team_external_id}</b> · "
+        f"Rakip: <b>#{nm.get('opponent_id', '?')}</b> ({side}) · "
+        f"Maç: {nm.get('match_id', '?')} · "
+        f"Başlama: {nm.get('kickoff', '?')} · "
+        f"opponent_scout v{agent_version} · Güncellendi: {updated_str}",
+        meta_style,
+    ))
+    story.append(Spacer(1, 6 * mm))
+
+    brief = data.get("ai_brief") or summary
+    if brief:
+        story.append(Paragraph("<b>AI Maç Planı Özeti</b>", section_style))
+        story.append(Paragraph(str(brief), body_style))
+        story.append(Spacer(1, 3 * mm))
+
+    for key, heading in _SCOUT_SECTIONS:
+        payload = data.get(key)
+        if not isinstance(payload, dict) or not payload:
+            continue
+        story.append(Paragraph(f"<b>{heading}</b>", section_style))
+        story.append(_kv_table(payload))
+        story.append(Spacer(1, 4 * mm))
+
+    known = {"next_match", "ai_brief", "team_external_id",
+             *(k for k, _ in _SCOUT_SECTIONS)}
+    rest = {k: v for k, v in data.items() if k not in known}
+    if rest:
+        story.append(Paragraph("<b>Diğer Alanlar</b>", section_style))
+        story.append(_kv_table(rest))
+
+    doc.build(story)
+    return buf.getvalue()

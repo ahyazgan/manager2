@@ -281,3 +281,74 @@ def test_performance_report_endpoint_builds_pdf(session: Session) -> None:
     )
     assert resp.body.startswith(b"%PDF-")
     assert resp.media_type == "application/pdf"
+
+
+# --------------------------------------------------------------------------- #
+# Scout raporu PDF (bölümlü)
+# --------------------------------------------------------------------------- #
+
+_SCOUT_OUTPUT = {
+    "team_external_id": 11,
+    "next_match": {
+        "match_id": 8001, "opponent_id": 22,
+        "kickoff": "2026-08-22T19:00:00+00:00", "my_side": "home",
+    },
+    "opponent_form": {"wins": 3, "draws": 1, "losses": 1, "points_per_game": 2.0},
+    "opponent_rating": {"rating": 71.5, "label": "iyi"},
+    "h2h": {"matches_played": 4, "team_a_wins": 1, "team_b_wins": 2},
+    "tactical_signals": {"ppda": 8.4, "pressing_trigger": 0.12},
+    "ai_brief": "Rakip yüksek pres altında zorlanıyor; erken baskı öner.",
+}
+
+
+def test_build_scout_report_pdf_returns_pdf() -> None:
+    from app.reports.pdf import build_scout_report_pdf
+
+    pdf = build_scout_report_pdf(
+        team_external_id=11, agent_version="3",
+        summary="özet", output_json=_SCOUT_OUTPUT,
+        updated_at=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+    assert pdf.startswith(b"%PDF-")
+    assert len(pdf) > 1500  # bölümlü içerik boş şablondan büyük
+
+
+def test_build_scout_report_pdf_tolerates_missing_sections() -> None:
+    """Agent şeması evrilse de (eksik bölüm / ekstra alan) rapor kırılmaz."""
+    from app.reports.pdf import build_scout_report_pdf
+
+    pdf = build_scout_report_pdf(
+        team_external_id=11, agent_version="3",
+        summary="özet", output_json={"yeni_alan": {"x": 1}},
+    )
+    assert pdf.startswith(b"%PDF-")
+
+
+def test_endpoint_scout_pdf_returns_latest(session: Session) -> None:
+    import json as _json
+
+    from app.api.reports import scout_report_pdf
+
+    _seed_agent_output(
+        session, agent_name="opponent_scout", subject_id=11,
+        output_json=_json.dumps(_SCOUT_OUTPUT),
+        updated_at=datetime(2026, 8, 1, tzinfo=UTC),
+    )
+    _seed_agent_output(
+        session, agent_name="opponent_scout", agent_version="2", subject_id=11,
+        output_json=_json.dumps(_SCOUT_OUTPUT),
+        updated_at=datetime(2026, 8, 15, tzinfo=UTC),
+    )
+    resp = scout_report_pdf(team_id=11, session=session)
+    assert resp.media_type == "application/pdf"
+    assert resp.body.startswith(b"%PDF-")
+    assert "scout_report_team_11" in resp.headers["Content-Disposition"]
+
+
+def test_endpoint_scout_pdf_404_when_absent(session: Session) -> None:
+    from app.api.reports import scout_report_pdf
+
+    with pytest.raises(HTTPException) as exc:
+        scout_report_pdf(team_id=99, session=session)
+    assert exc.value.status_code == 404
+    assert "run_opponent_scouts" in exc.value.detail

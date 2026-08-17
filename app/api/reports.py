@@ -129,6 +129,58 @@ def latest_agent_output_pdf(
     return _build_pdf_response(row)
 
 
+@router.get(
+    "/reports/scout/{team_id}/pdf",
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+def scout_report_pdf(
+    team_id: int,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Takımın son opponent_scout raporunu bölümlü PDF olarak döndür.
+
+    Genel agent-output PDF'inden farkı: scout çıktısının iç yapısı
+    (maç başlığı → AI brief → form → rating → h2h → taktik sinyaller)
+    bölümlere açılır. Rapor yoksa 404 + üretme ipucu.
+    """
+    _ensure_reportlab()
+    row = session.execute(
+        select(models.AgentOutput).where(
+            models.AgentOutput.agent_name == "opponent_scout",
+            models.AgentOutput.subject_type == "team",
+            models.AgentOutput.subject_id == team_id,
+        ).order_by(models.AgentOutput.updated_at.desc()).limit(1)
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"team #{team_id} için scout raporu yok — önce "
+                "run_opponent_scouts job'ını çalıştırın"
+            ),
+        )
+    from app.reports.pdf import build_scout_report_pdf
+
+    try:
+        pdf_bytes = build_scout_report_pdf(
+            team_external_id=team_id,
+            agent_version=row.agent_version,
+            summary=row.summary,
+            output_json=row.output_json,
+            updated_at=row.updated_at,
+        )
+    except ReportlabNotInstalled as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+                f'inline; filename="scout_report_team_{team_id}.pdf"',
+        },
+    )
+
+
 @router.post("/reports/performance/pdf", deprecated=True)
 def performance_report_pdf(
     payload: dict[str, Any],
