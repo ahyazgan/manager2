@@ -1,11 +1,12 @@
 /**
- * Doğrulanmış güven anlık-değeri (snapshot) — /calibration'daki out-of-sample
- * backtest'in özet sonuçları. Diğer sayfalar (command/match-plan) bu sabiti
- * referans gösterir; böylece 1.4MB sonuç JSON'u o sayfaların bundle'ına girmez.
+ * Doğrulanmış güven FALLBACK snapshot'ı — canlı kaynak artık backend
+ * (GET /admin/calibration/report → /api/trust proxy → TrustBadge). Bu sabit
+ * yalnızca backend'e ulaşılamadığında devreye girer; rozet asla boş kalmaz
+ * ve 1.4MB sonuç JSON'u hafif sayfaların bundle'ına girmez.
  *
- * KAYNAK: lib/calibration.computeCalibration() — görülmemiş 2022-23 sezonu (1826
- * maç), top-5 Avrupa ligi. Veri/model değişirse buradaki rakamlar /calibration ile
- * yeniden senkronlanmalı (oradaki canlı hesap tek gerçek kaynaktır).
+ * KAYNAK: app/engine/strength.compute_calibration_report() — görülmemiş
+ * 2022-23 sezonu (1826 maç), top-5 Avrupa ligi. (Python portu bu sayıları
+ * birebir yeniden üretir: result 76 / over 56 / btts 45.)
  */
 
 export const VALIDATED_TRUST = {

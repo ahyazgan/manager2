@@ -12,13 +12,25 @@
  */
 
 import { computeCalibration, predictorData } from "@/lib/calibration";
+import {
+  fetchBackendCalibration,
+  fetchBackendPredictorData,
+  fetchDecisionsCalibration,
+} from "@/lib/backend-calibration";
 import { engineLedgers } from "@/lib/decision-ledger";
 import { ConsoleShell } from "../_console/shell";
 import { CalibrationBody, FixturePredictor, DecisionLedger, AppliedActions, EngineRecord } from "../_console/calibration";
 
-export default function CalibrationPage() {
-  const report = computeCalibration();
-  const leagues = predictorData();
+export default async function CalibrationPage() {
+  // Model backend'de tek kaynak (engine.strength). Backend'e ulaşılamazsa
+  // aynı modelin yerel TS kopyası hesaplar — demo backend'siz de çalışır.
+  const backendReport = await fetchBackendCalibration();
+  const report = backendReport ?? computeCalibration();
+  const leagues = (await fetchBackendPredictorData()) ?? predictorData();
+  const decCal = backendReport ? await fetchDecisionsCalibration() : null;
+  const modelSource = backendReport
+    ? "backend API (engine.strength)"
+    : "yerel hesap (backend'e ulaşılamadı)";
   const ledgers = engineLedgers();
 
   const right = (
@@ -39,6 +51,7 @@ export default function CalibrationPage() {
           <div style={{ marginTop: 4 }}>• <b style={{ color: "var(--ink)" }}>Walk-forward</b>: her maç sadece o ana kadarki bilgiyle — gelecek sızıntısı yok.</div>
           <div style={{ marginTop: 4 }}>• <b style={{ color: "var(--ink)" }}>Out-of-sample</b>: {report.trainMatches.toLocaleString("tr")} maçta eğitildi, görülmemiş {report.splitSeason} ({report.matches.toLocaleString("tr")} maç) test edildi.</div>
           <div style={{ marginTop: 4 }}>• Belirsizlik: bootstrap %95 güven aralığı. Kaynak: openfootball, top-5 lig.</div>
+          <div style={{ marginTop: 4 }}>• <b style={{ color: "var(--ink)" }}>Hesap</b>: {modelSource}.</div>
         </div>
       </div>
     </>
@@ -71,6 +84,24 @@ export default function CalibrationPage() {
           &quot;%X tuttu&quot; rakamını kazanır. <b>Sahte sonuç üretilmez</b> — şu an &quot;birikiyor&quot; dürüstçe görünür.
         </div>
       </div>
+      {decCal && decCal.n_evaluated > 0 ? (
+        <div className="rc" style={{ margin: "0 0 14px", borderLeft: "3px solid var(--low)" }}>
+          <h3>Gerçek Karar Defteri Kalibrasyonu (backend)</h3>
+          <div style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.7 }}>
+            Sonucu girilmiş <b>{decCal.n_evaluated}</b> karar · isabet{" "}
+            <b>%{Math.round(decCal.overall.hit_rate * 100)}</b> · Brier{" "}
+            <b>{decCal.overall.brier_score.toFixed(3)}</b> ·{" "}
+            {decCal.overall.well_calibrated
+              ? "güven söylediğini tutuyor (kalibre)"
+              : "güven ile gerçekleşme arasında sapma var"}
+            {Object.entries(decCal.by_decision_type).map(([t, v]) => (
+              <span key={t} style={{ color: "var(--muted)" }}>
+                {" "}· {t}: %{Math.round(v.hit_rate * 100)} ({v.n})
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <DecisionLedger ledgers={ledgers} />
       <div style={{ height: 14 }} />
       <EngineRecord />
