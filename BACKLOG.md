@@ -9,6 +9,30 @@
 
 ## Now (current session — work top to bottom, don't pause between items)
 
+- [x] Kalibrasyon turu 1: audit metriği — CV=inf fix + Spearman IC  (19aab61)
+  Done when: mean≈0 motorlar inf CV ile tepeye oturmuyor, IC kolonu raporda, saf testler yeşil, committed.
+- [x] Kalibrasyon turu 1: StatsBomb Open disk cache  (d294442)
+  Done when: STATSBOMB_CACHE_DIR ile indirilen JSON diske yazılıyor, tekrar çalıştırma offline, testler yeşil, committed.
+- [x] Kalibrasyon turu 1: xG train --competitions/--max-matches CLI  (5376ca6)
+  Done when: docstring'in vadettiği argümanlar gerçekten loader'a ulaşıyor, testli, committed.
+- [x] Kalibrasyon turu 1: xG gerçek-veri eğitimi + class_weight fix  (8d11c87)
+  Done when: StatsBomb Open ile eğitim uçtan uca; Brier literatür bandında (0.087), metadata commit'li.
+- [x] Kalibrasyon turu 1: GET /admin/decisions/calibration  (d061d8c)
+  Done when: confidence↔outcome Brier + binler genel ve decision_type bazında, testli, committed.
+- [x] Kalibrasyon turu 1: Dixon-Coles ρ backend/frontend hizalama (-0.08)  (5f67df8)
+  Done when: DEFAULT_RHO tek kaynak, çağıranlar import ediyor, testler güncel, committed.
+
+### Kalibrasyon turu 2 (sonraki oturum — API'siz devam)
+
+- [ ] full_season_audit'i cache'le yeniden koş — IC kolonlu gerçek rapor üret
+  Done when: STATSBOMB_CACHE_DIR ile 34 maç audit, full_season_audit.md IC'li güncel, committed.
+- [ ] xG eğitim verisini büyüt (StatsBomb Open ücretsiz sezonlar: La Liga 04-20, WC, Euro)
+  Done when: ≥5k şutla eğitim, metrikler metadata'da, README tablosu güncel.
+- [ ] Dixon-Coles modelini app/engine/predict'e tam taşı — frontend API'den okusun (ROADMAP Ufuk 3)
+  Done when: takım atk/def güçleri backend'de öğreniliyor, frontend calibration sayfası API tüketiyor.
+- [ ] validated-trust rozetlerini /admin/decisions/calibration verisine bağla
+  Done when: frontend rozet gerçek karar defteri kalibrasyonunu gösteriyor, elle senkron sabit kalkıyor.
+
 - [x] Mobile sidebar drawer  (ba07618)
   Done when: drawer opens/closes on mobile breakpoints, nav items reachable, tsc+build clean, committed.
 - [x] Decisions API load-perf cache  (b2c55d6)

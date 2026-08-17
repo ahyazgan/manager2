@@ -8,6 +8,22 @@ from app.domain import Shot
 from app.engine.xg import compute_shot_xg, compute_team_xg
 
 
+@pytest.fixture(autouse=True)
+def _no_local_trained_model(monkeypatch):
+    """Bu dosya geometrik yolu test eder — yerelde models/xg_v1.pkl eğitilmiş
+    olsa bile 'auto' mode trained'e kaymamalı (test yerel artifact'a bağımlı
+    olmaz)."""
+    from app.core.config import get_settings
+    from app.engine.xg import model_loader
+
+    monkeypatch.setenv("XG_MODEL_PATH", "/nonexistent/xg_absent.pkl")
+    get_settings.cache_clear()
+    model_loader._reset_cache()
+    yield
+    get_settings.cache_clear()
+    model_loader._reset_cache()
+
+
 def _shot(**kw) -> Shot:
     base = dict(
         sport="football", match_external_id=1, player_external_id=10,
