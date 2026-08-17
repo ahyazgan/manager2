@@ -491,14 +491,11 @@ def compute_calibration_report(matches: Sequence[MatchResult]) -> dict[str, Any]
         c[0] += 1
         if r["hit"]:
             c[1] += 1
-    by_comp = sorted(
-        (
-            {"comp": league_label(comp), "matches": v[0],
-             "accuracy": _round(v[1] / v[0], 3)}
-            for comp, v in bc.items()
-        ),
-        key=lambda x: -x["matches"],
-    )
+    by_comp: list[dict[str, Any]] = [
+        {"comp": league_label(comp), "matches": v[0],
+         "accuracy": _round(v[1] / v[0], 3)}
+        for comp, v in sorted(bc.items(), key=lambda kv: -kv[1][0])
+    ]
 
     return {
         "matches": len(test), "trainMatches": train_matches,
