@@ -16,6 +16,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import { DEMO_MODE } from "@/lib/demo-mode";
+import { useI18n } from "@/lib/i18n";
 import { DataSourceStrip, type SourceId } from "@/lib/data-source";
 import { Crest } from "@/lib/teams";
 import { demoLive } from "@/lib/demo-data";
@@ -119,6 +120,8 @@ export interface ConsoleShellProps {
 export function ConsoleShell({
   active, title, sub, desc, navBadge, source, right, children,
 }: ConsoleShellProps) {
+  // Sayfa başlıkları tek noktadan çevrilir (sözlükte yoksa TR aynen kalır).
+  const { t } = useI18n();
   // Tablet/mobil: sidebar çekmece (drawer) olarak açılır.
   const [menuOpen, setMenuOpen] = React.useState(false);
 
@@ -210,10 +213,10 @@ export function ConsoleShell({
         <main className="center">
           <div className="pghdr">
             <div className="pgttl">
-              <h1>{title}</h1>
-              {sub && <span className="pg-badge">{sub}</span>}
+              <h1>{t(title)}</h1>
+              {sub && <span className="pg-badge">{t(sub)}</span>}
             </div>
-            {desc && <p className="pgdesc">{desc}</p>}
+            {desc && <p className="pgdesc">{t(desc)}</p>}
             {source && <DataSourceStrip sources={source} />}
           </div>
           {children}

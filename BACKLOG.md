@@ -68,9 +68,12 @@
 
 ## Later (lower priority — only if Now + Next clear)
 
-- [ ] PDF report export for scout_report_generator
-- [ ] Push/email delivery for digests (currently pull-only)
-- [ ] i18n scaffold for English UI
+- [x] PDF report export for scout raporu (opponent_scout)  (e0266ea)
+  → GET /reports/scout/{team_id}/pdf — bölümlü A4 (brief/form/rating/h2h/sinyaller).
+- [x] Push/email delivery for digests  (22920e7)
+  → run_weekly_digest artık Email/Telegram/WhatsApp kanallarına kısa özet gönderiyor (best-effort).
+- [x] i18n scaffold for English UI  (bkz. shell t() + DICT genişletmesi)
+  → ConsoleShell başlıkları t() ile sarıldı; 47 sayfa başlığı + sık alt-başlıklar EN sözlükte; topbar TR/EN toggle zaten vardı.
 - [x] Security headers (CSP / HSTS / X-Frame-Options / X-Content-Type-Options)  (b067175)
 - [x] Retry + circuit-breaker on external API calls  (868f289)
 - [x] Liveness/readiness split on /health  (pre-existing — /healthz + /readyz)
