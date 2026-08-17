@@ -110,9 +110,10 @@ def build_feature_matrix(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 def train_model(
     X: np.ndarray, y: np.ndarray, *, C: float = 1.0,
 ) -> LogisticRegression:
-    model = LogisticRegression(
-        C=C, max_iter=1000, class_weight="balanced", solver="lbfgs",
-    )
+    # class_weight KULLANILMAZ: "balanced" AUC'yi korur ama olasılıkları
+    # 0.5'e doğru şişirir (gerçek veride Brier 0.19'a fırlamıştı; ağırlıksız
+    # ~0.08). xG'nin çıktısı sıralama değil GERÇEK olasılık — kalibrasyon esas.
+    model = LogisticRegression(C=C, max_iter=1000, solver="lbfgs")
     model.fit(X, y)
     return model
 

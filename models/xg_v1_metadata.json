@@ -1,0 +1,20 @@
+{
+  "version": "xg_trained_v1",
+  "trained_at": "2026-08-17T08:30:32.444252+00:00",
+  "feature_names": [
+    "distance",
+    "angle",
+    "is_header",
+    "is_open_play",
+    "is_set_piece",
+    "is_fast_break",
+    "x",
+    "y"
+  ],
+  "metrics": {
+    "brier_score": 0.08661542680948983,
+    "log_loss": 0.2982571767980283,
+    "roc_auc": 0.7726272553909344,
+    "sample_count": 452
+  }
+}
