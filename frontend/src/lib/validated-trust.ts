@@ -10,14 +10,14 @@
  */
 
 export const VALIDATED_TRUST = {
-  result: 83,   // Maç Sonucu (1/X/2)
-  over: 46,     // Üst/Alt 2.5 gol
-  btts: 41,     // Karşılıklı gol
+  result: 85,   // Maç Sonucu (1/X/2)
+  over: 20,     // Üst/Alt 2.5 gol (şutsuz sezonlarda zayıf — dürüst rakam)
+  btts: 29,     // Karşılıklı gol
 } as const;
 
 export const VALIDATED_META = {
   season: "2022-26",
-  matches: 7376,
+  matches: 11159,
   method: "Ensemble: Atak/Defans·xG·Dixon-Coles (%70) + Elo (%30)",
   outOfSample: true,
 } as const;

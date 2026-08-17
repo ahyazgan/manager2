@@ -13,8 +13,8 @@ from app.engine.strength import (
 )
 from app.engine.strength.compute import (
     _blend_ledgers,
+    _bootstrap_ci,
     _metrics_of,
-    _mulberry32,
     _probs,
 )
 
@@ -47,20 +47,20 @@ def _season(n_train=30, n_test=10):
     return ms
 
 
-# ---------------------------------------------------------------- mulberry32
+# ----------------------------------------------------------------- bootstrap
 
-def test_mulberry32_deterministic():
-    a = _mulberry32(42)
-    b = _mulberry32(42)
-    seq_a = [a() for _ in range(5)]
-    seq_b = [b() for _ in range(5)]
-    assert seq_a == seq_b
-    assert all(0.0 <= v < 1.0 for v in seq_a)
-    assert len(set(seq_a)) > 1  # sabit değil
-
-
-def test_mulberry32_seed_changes_sequence():
-    assert [_mulberry32(1)() for _ in range(1)] != [_mulberry32(2)() for _ in range(1)]
+def test_bootstrap_deterministic_and_ordered():
+    rows = [
+        {"pH": 0.5, "pD": 0.3, "pA": 0.2, "actual": "H", "hit": True},
+        {"pH": 0.2, "pD": 0.3, "pA": 0.5, "actual": "A", "hit": True},
+        {"pH": 0.6, "pD": 0.2, "pA": 0.2, "actual": "D", "hit": False},
+    ] * 10
+    a = _bootstrap_ci(rows, b=100)
+    b = _bootstrap_ci(rows, b=100)
+    assert a == b  # sabit seed → deterministik
+    for key in ("accuracy", "brier", "logLoss", "ece"):
+        lo, hi = a[key]
+        assert lo <= hi
 
 
 # --------------------------------------------------------------------- probs

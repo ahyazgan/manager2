@@ -33,12 +33,22 @@ FRONTEND_JSON = REPO_ROOT / "frontend" / "src" / "lib" / "match-results.json"
 
 RAW_BASE = "https://raw.githubusercontent.com/openfootball/football.json/master"
 
-# (sezon, lig) çiftleri — tr.1 openfootball'da 2024-25'ten itibaren var.
+# Top-5 lig: SADECE 2023-24+ (öncesi football-data kaynağından zaten var;
+# eski sezonları openfootball'dan çekmek ad-eşleme kapsamını patlatır).
+_TOP5 = ("en.1", "es.1", "de.1", "it.1", "fr.1")
+# Ek ligler: openfootball adları olduğu gibi kanonik — tüm mevcut sezonlar
+# denenir, olmayan (404) sessizce atlanır.
+PASSTHROUGH_LEAGUES = ("tr.1", "nl.1", "pt.1", "gr.1", "be.1", "at.1")
+_ALL_SEASONS = (
+    "2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23",
+    "2023-24", "2024-25", "2025-26",
+)
 SEASONS: list[tuple[str, str]] = [
     (season, lg)
     for season in ("2023-24", "2024-25", "2025-26")
-    for lg in ("en.1", "es.1", "de.1", "it.1", "fr.1", "tr.1")
-    if not (lg == "tr.1" and season == "2023-24")
+    for lg in _TOP5
+] + [
+    (season, lg) for season in _ALL_SEASONS for lg in PASSTHROUGH_LEAGUES
 ]
 
 # openfootball adı → mevcut veri setindeki (football-data tarzı) kısa ad.
@@ -125,10 +135,35 @@ ALIAS: dict[str, dict[str, str]] = {
         "US Sassuolo Calcio": "Sassuolo", "Udinese Calcio": "Udinese",
         "Venezia FC": "Venezia",
     },
-    # Süper Lig: mevcut veri setinde eski kayıt yok — openfootball adları
-    # zaten temiz Türkçe kulüp adları; olduğu gibi kanonik kabul edilir.
-    "tr.1": {},
 }
+
+
+# Pass-through liglerde openfootball'un sezonlar arası ad kaymaları →
+# tek kanonik ad (walk-forward güç sürekliliği için). Hem yeni gelen hem
+# mevcut satırlara uygulanır (idempotent).
+NORMALIZE: dict[str, dict[str, str]] = {
+    "nl.1": {
+        "AZ Alkmaar": "AZ", "FC Twente '65": "FC Twente",
+        "Feyenoord Rotterdam": "Feyenoord", "NEC Nijmegen": "NEC",
+        "PSV Eindhoven": "PSV", "Willem II Tilburg": "Willem II",
+        "sc Heerenveen": "SC Heerenveen", "SBV Vitesse": "Vitesse",
+    },
+    "pt.1": {
+        "Boavista FC": "Boavista", "GD Estoril Praia": "GD Estoril",
+        "Gil Vicente FC": "Gil Vicente",
+        "Sport Lisboa e Benfica": "SL Benfica",
+        "Sporting Clube de Braga": "Sporting Braga",
+        "Sporting Clube de Portugal": "Sporting CP",
+    },
+    "tr.1": {
+        "Atiker Konyaspor": "Konyaspor",
+        "Gazişehir Gaziantep FK": "Gaziantep FK",
+    },
+}
+
+
+def _canon(lg: str, name: str) -> str:
+    return NORMALIZE.get(lg, {}).get(name, name)
 
 
 def _fetch(season: str, lg: str, cache_dir: Path | None) -> list[dict] | None:
@@ -158,7 +193,8 @@ def convert(
     matches: list[dict], lg: str, season: str, errors: list[str],
 ) -> list[dict]:
     """openfootball maçları → veri seti şeması (ad eşleme + sadece FT skorlu)."""
-    alias = ALIAS[lg]
+    alias = ALIAS.get(lg, {})
+    passthrough = lg in PASSTHROUGH_LEAGUES
     out: list[dict] = []
     for m in matches:
         score = m.get("score") or {}
@@ -167,8 +203,8 @@ def convert(
             continue  # oynanmamış / skorsuz
         rows = []
         for raw_name in (m["team1"], m["team2"]):
-            if lg == "tr.1":
-                rows.append(raw_name)
+            if passthrough:
+                rows.append(_canon(lg, raw_name))
             elif raw_name in alias:
                 rows.append(alias[raw_name])
             else:
@@ -192,6 +228,10 @@ def main() -> int:
     args = parser.parse_args()
 
     existing = json.loads(BACKEND_JSON.read_text(encoding="utf-8"))
+    # Önceki koşulardan kalan normalize edilmemiş adları düzelt (idempotent).
+    for m in existing:
+        m["home"] = _canon(m["comp"], m["home"])
+        m["away"] = _canon(m["comp"], m["away"])
     seen = {(m["comp"], m["date"], m["home"], m["away"]) for m in existing}
     print(f"Mevcut: {len(existing)} maç (son: {max(m['date'] for m in existing)})")
 

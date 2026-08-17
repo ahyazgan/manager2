@@ -18,7 +18,7 @@ tohum). Engine kuralı: veri parametre olarak gelir; DB/dosya erişimi caller'da
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any, TypedDict
 
 from app.engine.predict.compute import _dixon_coles_tau
@@ -54,6 +54,11 @@ LEAGUE_LABEL: dict[str, str] = {
     "it.1": "Serie A",
     "fr.1": "Ligue 1",
     "tr.1": "Süper Lig",
+    "nl.1": "Eredivisie",
+    "pt.1": "Primeira Liga",
+    "gr.1": "Super League (Yunanistan)",
+    "be.1": "Pro League (Belçika)",
+    "at.1": "Bundesliga (Avusturya)",
 }
 
 
@@ -361,41 +366,56 @@ def _metrics_of(rows: list[dict[str, Any]], name: str) -> dict[str, Any]:
     }
 
 
-def _mulberry32(seed: int) -> Callable[[], float]:
-    """Seeded PRNG — frontend mulberry32'nin birebir portu (deterministik)."""
-    state = seed & 0xFFFFFFFF
-
-    def rng() -> float:
-        nonlocal state
-        state = (state + 0x6D2B79F5) & 0xFFFFFFFF
-        t = state
-        t = ((t ^ (t >> 15)) * (t | 1)) & 0xFFFFFFFF
-        t = ((t + (((t ^ (t >> 7)) * (t | 61)) & 0xFFFFFFFF)) & 0xFFFFFFFF) ^ t
-        t &= 0xFFFFFFFF
-        return ((t ^ (t >> 14)) & 0xFFFFFFFF) / 4294967296
-
-    return rng
-
-
 def _bootstrap_ci(rows: list[dict[str, Any]], b: int = _BOOT_B) -> dict[str, list[float]]:
-    """Bootstrap %95 güven aralıkları (test setini yeniden örnekle)."""
-    rng = _mulberry32(_BOOT_SEED)
-    accs: list[float] = []
-    bris: list[float] = []
-    lls: list[float] = []
-    eces: list[float] = []
-    n = len(rows)
-    for _ in range(b):
-        s = [rows[int(rng() * n)] for _ in range(n)]
-        m = _metrics_of(s, "")
-        accs.append(m["accuracy"])
-        bris.append(m["brier"])
-        lls.append(m["logLoss"])
-        eces.append(m["ece"])
+    """Bootstrap %95 güven aralıkları — numpy ile vektörize (deterministik seed).
 
-    def ci(arr: list[float]) -> list[float]:
-        a = sorted(arr)
-        return [_round(a[int(b * 0.025)]), _round(a[int(b * 0.975)])]
+    Saf-Python döngü büyük test setlerinde (10k+ maç × 600 resample) dakikalar
+    alıyordu; satır-başı metrikler bir kez hesaplanıp resample'lar indeksleme
+    ile alınır. ECE resample başına bincount'la (3 sınıf × 10 kova).
+    """
+    import numpy as np
+
+    n = len(rows)
+    rng = np.random.Generator(np.random.PCG64(_BOOT_SEED))
+    p_h = np.array([r["pH"] for r in rows])
+    p_d = np.array([r["pD"] for r in rows])
+    p_a = np.array([r["pA"] for r in rows])
+    y_h = np.array([1.0 if r["actual"] == "H" else 0.0 for r in rows])
+    y_d = np.array([1.0 if r["actual"] == "D" else 0.0 for r in rows])
+    y_a = np.array([1.0 if r["actual"] == "A" else 0.0 for r in rows])
+    hit = np.array([1.0 if r["hit"] else 0.0 for r in rows])
+    brier_i = (p_h - y_h) ** 2 + (p_d - y_d) ** 2 + (p_a - y_a) ** 2
+    p_act = np.where(y_h == 1, p_h, np.where(y_d == 1, p_d, p_a))
+    ll_i = -np.log(np.clip(p_act, 1e-9, 1.0))
+    # ECE hazırlığı: 3 sınıfın kova indeksleri + (p, y) değerleri satır bazında
+    nb = 10
+    bins3 = np.stack([
+        np.minimum(nb - 1, (p_h * nb).astype(int)),
+        np.minimum(nb - 1, (p_d * nb).astype(int)),
+        np.minimum(nb - 1, (p_a * nb).astype(int)),
+    ])  # (3, n)
+    p3 = np.stack([p_h, p_d, p_a])
+    y3 = np.stack([y_h, y_d, y_a])
+
+    idx = rng.integers(0, n, size=(b, n))
+    accs = hit[idx].mean(axis=1)
+    bris = brier_i[idx].mean(axis=1)
+    lls = ll_i[idx].mean(axis=1)
+    eces = np.empty(b)
+    for k in range(b):
+        sel = idx[k]
+        bi = bins3[:, sel].ravel()
+        sp = np.bincount(bi, weights=p3[:, sel].ravel(), minlength=nb)
+        sy = np.bincount(bi, weights=y3[:, sel].ravel(), minlength=nb)
+        c = np.bincount(bi, minlength=nb)
+        mask = c > 0
+        eces[k] = float(
+            ((c[mask] / (n * 3)) * np.abs(sp[mask] / c[mask] - sy[mask] / c[mask])).sum()
+        )
+
+    def ci(arr: Any) -> list[float]:
+        a = np.sort(arr)
+        return [_round(float(a[int(b * 0.025)])), _round(float(a[int(b * 0.975)]))]
 
     return {"accuracy": ci(accs), "brier": ci(bris), "logLoss": ci(lls), "ece": ci(eces)}
 

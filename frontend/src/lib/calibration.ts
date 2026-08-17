@@ -27,6 +27,9 @@ const ALL = (raw as RawResult[]).slice().sort((a, b) => (a.date < b.date ? -1 : 
 export const LEAGUE_LABEL: Record<string, string> = {
   "en.1": "Premier League", "es.1": "La Liga", "de.1": "Bundesliga",
   "it.1": "Serie A", "fr.1": "Ligue 1", "tr.1": "Süper Lig",
+  "nl.1": "Eredivisie", "pt.1": "Primeira Liga",
+  "gr.1": "Super League (Yunanistan)", "be.1": "Pro League (Belçika)",
+  "at.1": "Bundesliga (Avusturya)",
 };
 export const leagueLabel = (c: string) => LEAGUE_LABEL[c] || c;
 
