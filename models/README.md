@@ -35,11 +35,15 @@ python -m app.engine.xg.train --output models/xg_v1.pkl --source statsbomb_open 
 
 ## Beklenen metrikler
 
-| Metrik | Beklenen aralık (literatür) | Synthetic'te tipik | StatsBomb Open (La Liga 20/21 + WC 2022, ~2.3k şut) |
+| Metrik | Beklenen aralık (literatür) | Synthetic'te tipik | StatsBomb Open (8 turnuva/sezon, ~18k şut) |
 |---|---|---|---|
-| ROC-AUC | 0.75 - 0.82 | ~0.78 | 0.773 |
-| Brier score | 0.07 - 0.10 | ~0.08 | 0.087 |
-| Log loss | 0.30 - 0.45 | ~0.35 | 0.298 |
+| ROC-AUC | 0.75 - 0.82 | ~0.78 | 0.753 |
+| Brier score | 0.07 - 0.10 | ~0.08 | 0.078 |
+| Log loss | 0.30 - 0.45 | ~0.35 | 0.278 |
+
+Güncel eğitim seti (hepsi ücretsiz açık veri):
+`--competitions "9:281,2:27,43:3,43:106,55:43,55:282,11:90,11:4"` —
+Bundesliga 23/24, PL 15/16, WC 2018+2022, Euro 2020+2024, La Liga 18/19+20/21.
 
 > Not: `class_weight="balanced"` KULLANILMAZ — AUC'yi korur ama olasılıkları
 > şişirir (gerçek veride Brier 0.19'a çıkmıştı). xG çıktısı gerçek olasılıktır;

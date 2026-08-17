@@ -1,6 +1,6 @@
 {
   "version": "xg_trained_v1",
-  "trained_at": "2026-08-17T08:30:32.444252+00:00",
+  "trained_at": "2026-08-17T08:49:35.563937+00:00",
   "feature_names": [
     "distance",
     "angle",
@@ -12,9 +12,9 @@
     "y"
   ],
   "metrics": {
-    "brier_score": 0.08661542680948983,
-    "log_loss": 0.2982571767980283,
-    "roc_auc": 0.7726272553909344,
-    "sample_count": 452
+    "brier_score": 0.07819269312567535,
+    "log_loss": 0.277604726633323,
+    "roc_auc": 0.7526691450474579,
+    "sample_count": 3608
   }
 }

@@ -24,10 +24,10 @@
 
 ### Kalibrasyon turu 2 (sonraki oturum — API'siz devam)
 
-- [ ] full_season_audit'i cache'le yeniden koş — IC kolonlu gerçek rapor üret
+- [x] full_season_audit'i cache'le yeniden koş — IC kolonlu gerçek rapor üret  (89dd187)
   Done when: STATSBOMB_CACHE_DIR ile 34 maç audit, full_season_audit.md IC'li güncel, committed.
-- [ ] xG eğitim verisini büyüt (StatsBomb Open ücretsiz sezonlar: La Liga 04-20, WC, Euro)
-  Done when: ≥5k şutla eğitim, metrikler metadata'da, README tablosu güncel.
+- [x] xG eğitim verisini büyüt (StatsBomb Open ücretsiz sezonlar)  (bkz. models/xg_v1_metadata.json)
+  Done when: ≥5k şutla eğitim, metrikler metadata'da, README tablosu güncel. → ~18k şut, Brier 0.078.
 - [ ] Dixon-Coles modelini app/engine/predict'e tam taşı — frontend API'den okusun (ROADMAP Ufuk 3)
   Done when: takım atk/def güçleri backend'de öğreniliyor, frontend calibration sayfası API tüketiyor.
 - [ ] validated-trust rozetlerini /admin/decisions/calibration verisine bağla
