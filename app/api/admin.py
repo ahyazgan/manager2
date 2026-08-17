@@ -1602,6 +1602,75 @@ def decisions_feedback(
         for dtype, b in by_type.items()
     }
     return {"team_id": team_id, "evaluated": len(rows), "by_decision_type": summary}
+
+
+@router.get(
+    "/decisions/calibration",
+    tags=["admin"],
+    summary="Karar güven kalibrasyonu — confidence ↔ outcome (Brier + binler)",
+)
+def decisions_calibration(
+    team_id: int | None = Query(None),
+    days: int = Query(365, ge=1, le=3650),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Kaydedilen kararların confidence'ı gerçek sonuçla ne kadar örtüşüyor?
+
+    Sonucu girilmiş (positive/negative) ve confidence'ı olan tüm kararlar
+    (confidence, outcome==positive) çiftine çevrilip `engine.backtest`'ten
+    geçirilir: genel + decision_type bazında Brier, isabet, kalibrasyon
+    binleri ve well_calibrated bayrağı. "%70 diyorsa gerçekten %70 mi?"
+    sorusunun ölçülebilir cevabı — validated-trust rozetlerinin veri kaynağı.
+    """
+    from app.engine.backtest import backtest
+
+    since = datetime.now(UTC) - timedelta(days=days)
+    stmt = select(models.Decision).where(
+        models.Decision.sport == football.SPORT_NAME,
+        models.Decision.confidence.is_not(None),
+        models.Decision.outcome.in_(("positive", "negative")),
+        models.Decision.created_at >= since,
+    )
+    if team_id is not None:
+        stmt = stmt.where(models.Decision.team_external_id == team_id)
+    rows = list(session.execute(stmt).scalars())
+
+    def _report(samples: list[tuple[float, bool]]) -> dict[str, Any]:
+        r = backtest(samples)
+        return {
+            "n": r.n,
+            "hit_rate": r.hit_rate,
+            "brier_score": r.brier_score,
+            "mean_predicted": r.mean_predicted,
+            "observed_rate": r.observed_rate,
+            "well_calibrated": r.well_calibrated,
+            "bins": [
+                {
+                    "lower": b.lower, "upper": b.upper, "n": b.n,
+                    "mean_predicted": b.mean_predicted,
+                    "observed_rate": b.observed_rate,
+                }
+                for b in r.calibration
+            ],
+        }
+
+    all_samples: list[tuple[float, bool]] = []
+    by_type_samples: dict[str, list[tuple[float, bool]]] = {}
+    for row in rows:
+        sample = (float(row.confidence), row.outcome == "positive")
+        all_samples.append(sample)
+        by_type_samples.setdefault(row.decision_type, []).append(sample)
+
+    return {
+        "team_id": team_id,
+        "days": days,
+        "n_evaluated": len(all_samples),
+        "overall": _report(all_samples),
+        "by_decision_type": {
+            dtype: _report(samples)
+            for dtype, samples in sorted(by_type_samples.items())
+        },
+    }
 @router.get(
     "/matches/{match_id}/decisions/learning",
     tags=["admin"],
