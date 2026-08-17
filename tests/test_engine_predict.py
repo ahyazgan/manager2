@@ -76,16 +76,16 @@ def test_predict_most_likely_score_is_grid_max():
     """En olası skor, olasılık matrisindeki maksimumla aynı.
 
     λ=1 için Poisson modu k=0 veya k=1; iki taraf da 1.0 ise (0,0) ve (1,1)
-    saf Poisson'da eşittir (~0.135). Dixon-Coles düzeltmesi (ρ=-0.12 default)
-    her ikisini de τ=1.12 ile çarpar → her iki hücre ~0.151'e çıkar; eşitlik
-    korunur, en olası set aynı.
+    saf Poisson'da eşittir (~0.135). Dixon-Coles düzeltmesi (ρ=-0.08 default —
+    frontend out-of-sample backtest'iyle hizalı) her ikisini de τ=1.08 ile
+    çarpar → her iki hücre ~0.146'ya çıkar; eşitlik korunur, en olası set aynı.
     """
     home_f = _form_for(611, scoring_avg=1.0)
     away_f = _form_for(607, scoring_avg=1.0)
     p = compute_predict(home_f, away_f, home_team_id=611, away_team_id=607).value
     assert p.most_likely_score in [(0, 0), (1, 1)]
-    # DC default (ρ=-0.12) ile ~0.151
-    assert p.most_likely_score_prob == pytest.approx(0.151, abs=0.01)
+    # DC default (ρ=-0.08) ile ~0.146
+    assert p.most_likely_score_prob == pytest.approx(0.146, abs=0.01)
 
 
 def test_predict_rho_zero_falls_back_to_pure_poisson():
@@ -103,7 +103,7 @@ def test_predict_dixon_coles_bumps_low_score_cells():
     home_f = _form_for(611, scoring_avg=1.0)
     away_f = _form_for(607, scoring_avg=1.0)
     p_poisson = compute_predict(home_f, away_f, home_team_id=611, away_team_id=607, rho=0.0).value
-    p_dc = compute_predict(home_f, away_f, home_team_id=611, away_team_id=607).value  # ρ=-0.12
+    p_dc = compute_predict(home_f, away_f, home_team_id=611, away_team_id=607).value  # ρ=-0.08
 
     # DC negatif ρ → draw payı artar (P(0-0)+P(1-1)+... yukarı)
     assert p_dc.prob_draw > p_poisson.prob_draw
@@ -125,7 +125,7 @@ def test_predict_audit_carries_formula_and_inputs():
     assert "Dixon-Coles" in res.audit.formula
     assert res.audit.inputs["lam_home"] == 1.5 or res.audit.inputs["lam_home"] == 2.0  # round nedeniyle
     assert res.audit.inputs["min_confident_sample"] == 5
-    assert res.audit.inputs["rho"] == pytest.approx(-0.12)
+    assert res.audit.inputs["rho"] == pytest.approx(-0.08)
 
 
 def test_predict_zero_goals_doesnt_crash():

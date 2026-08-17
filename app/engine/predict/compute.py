@@ -16,9 +16,10 @@ bir τ faktörüyle düzeltir:
     τ(1,1) = 1 - ρ
     τ(x,y) = 1   diğer hücrelerde
 
-ρ tipik olarak -0.18 ile -0.05 arasında; biz literatür ortasında
-ρ=-0.12 default'u tutuyoruz. ρ=0 saf Poisson'a indirger
-(geriye uyumlu baseline; karşılaştırma için audit'lenebilir).
+ρ tipik olarak -0.18 ile -0.05 arasında; default ρ=-0.08 — frontend
+calibration backtest'inde (out-of-sample, 2022-23 test sezonu) doğrulanan
+değer. ρ=0 saf Poisson'a indirger (geriye uyumlu baseline;
+karşılaştırma için audit'lenebilir).
 
 τ değişimleri sıfır toplamlı: P(0,0)/P(1,1) artar, P(0,1)/P(1,0) eşit
 miktarda azalır — toplam olasılık 1 kalır.
@@ -51,9 +52,15 @@ ENGINE_VERSION = "2"  # v1 → v2: Dixon-Coles düşük skor düzeltmesi default
 _MIN_CONFIDENT_SAMPLE = 5
 # Gol olasılığı hesabında üst sınır — 10 üstü gol pratikte sıfır.
 _MAX_GOALS = 10
-# Dixon-Coles korelasyon parametresi — literatür tipik -0.18..-0.05;
-# ortasını alıp -0.12 default. ρ=0 → saf Poisson (baseline).
-_DEFAULT_RHO = -0.12
+# Dixon-Coles korelasyon parametresi — literatür tipik -0.18..-0.05.
+# -0.08: frontend/src/lib/calibration.ts out-of-sample backtest'inde
+# (5 büyük lig, 2017-2023, ~10.8k maç; train 2017-22 → test 2022-23)
+# doğrulanan değer — backend ve frontend aynı ρ'yu kullanır.
+# ρ=0 → saf Poisson (baseline).
+_DEFAULT_RHO = -0.08
+# Dışarıya açık alias — mega_match / api / assistant aynı default'u
+# import eder, sabit kopyalanmaz.
+DEFAULT_RHO = _DEFAULT_RHO
 
 
 @dataclass(frozen=True)

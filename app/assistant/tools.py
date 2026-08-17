@@ -22,7 +22,7 @@ from app.db import models
 from app.engine.form import compute_form
 from app.engine.load import compute_player_load
 from app.engine.opponent import compute_head_to_head
-from app.engine.predict import compute_predict
+from app.engine.predict import DEFAULT_RHO, compute_predict
 from app.engine.predict_ml import CACHE_KEY as ML_CACHE_KEY
 from app.engine.predict_ml import CACHE_SOURCE as ML_CACHE_SOURCE
 from app.engine.rating import compute_team_rating
@@ -165,7 +165,7 @@ def tool_get_match_prediction(
     home_form = compute_form(m.home_team_external_id, home_prior, last_n=5).value
     away_form = compute_form(m.away_team_external_id, away_prior, last_n=5).value
 
-    rho = -0.12
+    rho = DEFAULT_RHO
     ml_status = "default"
     if use_ml:
         ml_cache = cache_get(session, source=ML_CACHE_SOURCE, key=ML_CACHE_KEY)

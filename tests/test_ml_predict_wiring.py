@@ -120,7 +120,7 @@ def test_predict_use_ml_true_untrained_falls_back(session, client):
     body = r.json()
     assert body["audit"]["inputs"]["ml_status"] == "untrained"
     # rho default değer (compute_predict'in default'u -0.12)
-    assert body["audit"]["inputs"]["rho"] == pytest.approx(-0.12)
+    assert body["audit"]["inputs"]["rho"] == pytest.approx(-0.08)
 
 
 def test_predict_use_ml_true_fresh_uses_learned_rho(session, client):
@@ -148,7 +148,7 @@ def test_predict_use_ml_true_stale_falls_back(session, client):
     r = client.get("/matches/99/predict?use_ml=true")
     body = r.json()
     assert body["audit"]["inputs"]["ml_status"] == "stale"
-    assert body["audit"]["inputs"]["rho"] == pytest.approx(-0.12)  # default
+    assert body["audit"]["inputs"]["rho"] == pytest.approx(-0.08)  # default
 
 
 def test_predict_use_ml_separate_cache_from_default(session, client):
@@ -160,5 +160,5 @@ def test_predict_use_ml_separate_cache_from_default(session, client):
     r1 = client.get("/matches/99/predict")
     # use_ml=true (learned ρ)
     r2 = client.get("/matches/99/predict?use_ml=true")
-    assert r1.json()["audit"]["inputs"]["rho"] == pytest.approx(-0.12)
+    assert r1.json()["audit"]["inputs"]["rho"] == pytest.approx(-0.08)
     assert r2.json()["audit"]["inputs"]["rho"] == pytest.approx(-0.06)

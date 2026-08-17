@@ -35,7 +35,7 @@ from app.engine.form import compute_form
 from app.engine.match_dominance import compute_match_dominance
 from app.engine.match_phase import compute_match_phases
 from app.engine.opponent import compute_head_to_head
-from app.engine.predict import compute_predict
+from app.engine.predict import DEFAULT_RHO, compute_predict
 from app.engine.predict_ml import CACHE_KEY as ML_CACHE_KEY
 from app.engine.predict_ml import CACHE_SOURCE as ML_CACHE_SOURCE
 from app.engine.rating import compute_team_rating
@@ -108,7 +108,7 @@ class MegaMatchAgent(Agent):
             rho = float(ml_cache["best_rho"])
             ml_status = "fresh"
         else:
-            rho = -0.12  # engine.predict default
+            rho = DEFAULT_RHO  # engine.predict default
             ml_status = "untrained"
 
         predict = compute_predict(
