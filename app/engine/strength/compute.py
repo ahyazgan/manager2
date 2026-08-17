@@ -396,8 +396,9 @@ def _binary_market(
     n = len(rows) or 1
     acc = brier = base_sum = 0.0
     for r in rows:
-        p = r.get(p_key) if r.get(p_key) is not None else 0.5
-        y = r.get(y_key) or 0
+        p_raw = r.get(p_key)
+        p = float(p_raw) if p_raw is not None else 0.5
+        y = int(r.get(y_key) or 0)
         if (1 if p >= 0.5 else 0) == y:
             acc += 1
         brier += (p - y) ** 2
@@ -405,7 +406,7 @@ def _binary_market(
     base_rate = base_sum / n
     b_brier = 0.0
     for r in rows:
-        y = r.get(y_key) or 0
+        y = int(r.get(y_key) or 0)
         b_brier += (base_rate - y) ** 2
     acc /= n
     brier /= n
@@ -414,8 +415,9 @@ def _binary_market(
     nb = 10
     eb = [[0.0, 0.0, 0] for _ in range(nb)]
     for r in rows:
-        p = r.get(p_key) if r.get(p_key) is not None else 0.5
-        y = r.get(y_key) or 0
+        p_raw = r.get(p_key)
+        p = float(p_raw) if p_raw is not None else 0.5
+        y = int(r.get(y_key) or 0)
         bi = min(nb - 1, int(p * nb))
         eb[bi][0] += p
         eb[bi][1] += y
