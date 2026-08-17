@@ -7,8 +7,10 @@ StatsBomb GitHub raw URL pattern:
         events/{match_id}.json
         lineups/{match_id}.json
 
-Rate limit: GitHub raw 60 req/saat unauth → cache şart. Bu adapter cache layer'ı
-zaten kullanır (DataSource base + cache_entries).
+Rate limit: GitHub raw 60 req/saat unauth → cache şart. Bu adapter opt-in
+DİSK cache kullanır: `cache_dir` parametresi (veya STATSBOMB_CACHE_DIR env)
+verilirse indirilen her JSON diske yazılır; sonraki çalıştırmalar ağa
+çıkmadan diskten okur (audit/train script'lerinin offline tekrarı için).
 
 Lisans: StatsBomb Open data **non-commercial license** altında. Production
 deploy için ticari kullanım hakkı doğrulanmalı. Bu adapter eğitim/test için.
@@ -22,6 +24,8 @@ monkeypatch'leyerek sample fixture'larla parser'ı doğrular.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import httpx
@@ -83,14 +87,34 @@ class StatsBombOpen:
     # Sınıf-düzeyi devre kesici — pod ömrü boyunca paylaşılır (runtime lazy assign)
     _breaker: object | None = None
 
-    def __init__(self, base_url: str | None = None, timeout: float = HTTP_TIMEOUT):
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: float = HTTP_TIMEOUT,
+        cache_dir: str | Path | None = None,
+    ):
         self._base_url = (base_url or STATSBOMB_RAW_BASE).rstrip("/")
         self._timeout = timeout
+        if cache_dir is None:
+            from app.core.config import get_settings
+            configured = get_settings().statsbomb_cache_dir
+            cache_dir = configured or None
+        self._cache_dir = Path(cache_dir) if cache_dir else None
         if StatsBombOpen._breaker is None:
             from app.data.sources._resilience import CircuitBreaker
             StatsBombOpen._breaker = CircuitBreaker(
                 failure_threshold=5, cooldown_seconds=60.0,
             )
+
+    def _cache_path(self, path: str) -> Path | None:
+        """`events/123.json` → `<cache_dir>/events/123.json`; cache kapalıysa None."""
+        if self._cache_dir is None:
+            return None
+        rel = PurePosixPath(path)
+        # Path traversal koruması: sadece düz göreli segmentler
+        if rel.is_absolute() or ".." in rel.parts:
+            return None
+        return self._cache_dir.joinpath(*rel.parts)
 
     @staticmethod
     def _is_retryable(e: Exception) -> bool:
@@ -101,8 +125,17 @@ class StatsBombOpen:
         return any(code in msg for code in (" 500", " 502", " 503", " 504"))
 
     def _fetch_json(self, path: str) -> Any:
-        """GitHub raw'dan JSON çek. Retry (3 attempt + backoff) + circuit breaker."""
+        """GitHub raw'dan JSON çek. Disk cache hit ise ağa çıkmaz.
+
+        Miss'te retry (3 attempt + backoff) + circuit breaker; başarılı yanıt
+        cache'e atomik yazılır (tmp + rename — yarım dosya asla okunmaz).
+        """
         from app.data.sources._resilience import call_with_retry
+
+        cache_file = self._cache_path(path)
+        if cache_file is not None and cache_file.is_file():
+            log.info("statsbomb cache hit: %s", path)
+            return json.loads(cache_file.read_text(encoding="utf-8"))
 
         url = f"{self._base_url}/{path}"
         log.info("statsbomb fetch: %s", path)
@@ -117,10 +150,19 @@ class StatsBombOpen:
                     )
                 return r.json()
 
-        return call_with_retry(
+        data = call_with_retry(
             _once, attempts=3, breaker=StatsBombOpen._breaker,
             is_retryable=self._is_retryable,
         )
+        if cache_file is not None:
+            try:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                tmp = cache_file.with_suffix(cache_file.suffix + ".tmp")
+                tmp.write_text(json.dumps(data), encoding="utf-8")
+                tmp.replace(cache_file)
+            except OSError as e:  # cache yazılamazsa veri yine döner
+                log.warning("statsbomb cache write fail %s: %s", path, e)
+        return data
 
     def get_competitions(self) -> list[dict[str, Any]]:
         return self._fetch_json("competitions.json")

@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     # xG modeli (Prompt 2) — trained artifact path; boş ise models/xg_v1.pkl
     xg_model_path: str = Field(default="", alias="XG_MODEL_PATH")
 
+    # StatsBomb Open disk cache — GitHub raw 60 req/saat unauth limitine karşı
+    # indirilen JSON'lar bu dizine yazılır, tekrar çalıştırmalar offline döner.
+    # Boş ise cache kapalı (eski davranış).
+    statsbomb_cache_dir: str = Field(default="", alias="STATSBOMB_CACHE_DIR")
+
     # Canlı feed sağlayıcısı — maç-içi konsolda hangi enterprise feed'in
     # (StatsBomb/Opta/Stats Perform) API anahtarı "bağlı" görünür. Veri bugün
     # StatsBomb open replay'inden gelir; bu sadece sunum/bağlantı katmanı.
