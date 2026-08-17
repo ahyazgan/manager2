@@ -7,7 +7,10 @@
       "cv": 0.6226,
       "team_spread": 6.52,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": -0.3318,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "pressing_trigger": {
       "n_samples": 68,
@@ -16,7 +19,10 @@
       "cv": 0.5373,
       "team_spread": 0.2635,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.1188,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "recovery_zone_heat": {
       "n_samples": 68,
@@ -25,7 +31,10 @@
       "cv": 0.4304,
       "team_spread": 0.348,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.2452,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "WEAK"
     },
     "defensive_line": {
       "n_samples": 68,
@@ -34,7 +43,10 @@
       "cv": 0.1999,
       "team_spread": 22.545,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.0887,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "compactness": {
       "n_samples": 68,
@@ -43,7 +55,10 @@
       "cv": 0.0518,
       "team_spread": 3.8,
       "n_teams": 20,
-      "verdict": "MODERATE"
+      "ic": 0.0031,
+      "ic_pairs": 68,
+      "verdict": "MODERATE",
+      "predictive": "NONE"
     },
     "transition": {
       "n_samples": 68,
@@ -52,7 +67,10 @@
       "cv": 0.4392,
       "team_spread": 0.2148,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.2507,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "WEAK"
     },
     "counter_press_triggers": {
       "n_samples": 68,
@@ -61,7 +79,10 @@
       "cv": 0.261,
       "team_spread": 45.5,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": -0.1373,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "direct_play": {
       "n_samples": 68,
@@ -70,7 +91,10 @@
       "cv": 0.1552,
       "team_spread": 0.1709,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": -0.4699,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "tempo": {
       "n_samples": 68,
@@ -79,7 +103,10 @@
       "cv": 0.3479,
       "team_spread": 5.0529,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.5684,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "possession_quality": {
       "n_samples": 68,
@@ -88,7 +115,10 @@
       "cv": 0.3433,
       "team_spread": 3.66,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.3592,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "channel_preference": {
       "n_samples": 68,
@@ -97,7 +127,10 @@
       "cv": 0.2211,
       "team_spread": 0.2775,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": -0.2072,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "WEAK"
     },
     "final_third_entries": {
       "n_samples": 68,
@@ -106,7 +139,10 @@
       "cv": 0.3352,
       "team_spread": 51.6765,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.3856,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "cross_effectiveness": {
       "n_samples": 68,
@@ -115,7 +151,10 @@
       "cv": 0.476,
       "team_spread": 21.5,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": -0.0471,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "cutback_frequency": {
       "n_samples": 68,
@@ -124,7 +163,10 @@
       "cv": 0.5954,
       "team_spread": 13.5,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.002,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "defensive_duels": {
       "n_samples": 68,
@@ -133,7 +175,10 @@
       "cv": 0.1741,
       "team_spread": 0.5,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.0,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "NONE"
     },
     "press_resistance": {
       "n_samples": 68,
@@ -142,7 +187,10 @@
       "cv": 0.1026,
       "team_spread": 0.3305,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.3248,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "set_piece_zones": {
       "n_samples": 68,
@@ -151,7 +199,10 @@
       "cv": 0.7519,
       "team_spread": 4.0,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.2024,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "WEAK"
     },
     "team_xt": {
       "n_samples": 68,
@@ -160,7 +211,10 @@
       "cv": 2.0708,
       "team_spread": 2.55,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.5531,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "field_tilt": {
       "n_samples": 68,
@@ -169,16 +223,22 @@
       "cv": 0.4853,
       "team_spread": 0.5563,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.4553,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     },
     "match_dominance": {
       "n_samples": 68,
       "mean": 0.0,
       "stdev": 4.7609,
-      "cv": Infinity,
+      "cv": null,
       "team_spread": 11.7465,
       "n_teams": 20,
-      "verdict": "STRONG_SIGNAL"
+      "ic": 0.6099,
+      "ic_pairs": 68,
+      "verdict": "STRONG_SIGNAL",
+      "predictive": "PREDICTIVE"
     }
   },
   "barca_validation": {
