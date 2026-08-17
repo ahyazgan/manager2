@@ -28,8 +28,8 @@
   Done when: 2023-26 sezonları eşlenmiş adlarla birleşik, model şutsuz satırlarda gole düşüyor, rapor yeniden üretildi. → trust 76→83.
 - [x] 6 ek lig + Süper Lig train sezonları + numpy bootstrap  (01070f5)
   Done when: 26k maç, 11 ligde out-of-sample rapor <5 sn. → trust 85, Süper Lig %55.4.
-- [ ] Motor audit'i çok-turnuvalı (La Liga 18/19 + WC 2022 + Euro 2024) — IC n=68→~470
-  Done when: full_season_audit --competitions ile koşuldu, rapor commit'li.
+- [x] Motor audit'i çok-turnuvalı (La Liga 18/19 + WC 2022 + Euro 2024) — IC n=68→298
+  Done when: full_season_audit --competitions ile koşuldu, rapor commit'li. → tempo IC +0.57→+0.28 (Barca yanlılığıymış); match_dominance +0.45 / team_xt +0.40 gerçek sinyal.
 
 ### Kalibrasyon turu 2 (sonraki oturum — API'siz devam)
 

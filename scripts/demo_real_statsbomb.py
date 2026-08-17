@@ -64,11 +64,17 @@ def _ensure_db():
 
 def _seed_match_from_statsbomb(
     session, *, match_id: int, tenant_id: str,
+    competitions: list[tuple[int, int]] | None = None,
 ) -> models.Match:
-    """StatsBomb'dan maç metadata çek + DB'ye seed et."""
+    """StatsBomb'dan maç metadata çek + DB'ye seed et.
+
+    `competitions`: aranacak (comp_id, season_id) listesi — default La Liga
+    açık sezonları (geriye uyumlu; full_season_audit çok-turnuva geçer).
+    """
     src = StatsBombOpen()
-    # Tüm La Liga match listesinden ara
-    for comp_id, season_id in [(11, 4), (11, 90), (11, 42)]:
+    if competitions is None:
+        competitions = [(11, 4), (11, 90), (11, 42)]
+    for comp_id, season_id in competitions:
         matches = src.get_matches(competition_id=comp_id, season_id=season_id)
         for m in matches:
             if m["match_id"] == match_id:

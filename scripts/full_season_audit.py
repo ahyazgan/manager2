@@ -128,7 +128,10 @@ def ingest_full_season(
         for i, m in enumerate(matches, 1):
             mid = m["match_id"]
             try:
-                _seed_match_from_statsbomb(session, match_id=mid, tenant_id=TENANT_ID)
+                _seed_match_from_statsbomb(
+                    session, match_id=mid, tenant_id=TENANT_ID,
+                    competitions=competitions,
+                )
                 session.commit()
                 report = ingest_events_for_match(
                     session, src, match_external_id=mid, tenant_id=TENANT_ID,
@@ -372,7 +375,8 @@ def write_report(
     lines: list[str] = [
         "# Full Season Engine Audit",
         "",
-        f"La Liga 2018/19 üzerinde {n_matches} maç ingest + 22 team-level engine audit.",
+        f"StatsBomb Open üzerinde {n_matches} maç ingest + 22 team-level engine audit"
+        " (La Liga 2018/19 + WC 2022 + Euro 2024).",
         "",
         "IC = Spearman(metrik, maçın gol farkı) — concurrent validity.",
         "CV mean≈0 metriklerde tanımsızdır ('—').",
