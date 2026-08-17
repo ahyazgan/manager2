@@ -10,6 +10,7 @@ HTTP karşılığı.
 
 from __future__ import annotations
 
+import functools
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -1602,6 +1603,47 @@ def decisions_feedback(
         for dtype, b in by_type.items()
     }
     return {"team_id": team_id, "evaluated": len(rows), "by_decision_type": summary}
+
+
+@router.get(
+    "/calibration/report",
+    tags=["admin"],
+    summary="Model kalibrasyon raporu — walk-forward backtest (engine.strength)",
+)
+def calibration_report() -> dict[str, Any]:
+    """Out-of-sample kalibrasyon raporu (5 lig, 2017-2023, test: 2022-23).
+
+    Model backend'de tek kaynak (engine.strength); frontend /calibration
+    sayfası ve trust rozetleri bu ucu tüketir. Statik veri üzerinde
+    deterministik hesap — process başına 1 kez hesaplanır (cache).
+    """
+    return _cached_calibration_report()
+
+
+@router.get(
+    "/calibration/predictor-data",
+    tags=["admin"],
+    summary="Öğrenilen takım güçleri (atk/def + Elo) — canlı tahmin verisi",
+)
+def calibration_predictor_data() -> dict[str, Any]:
+    """Walk-forward modelin öğrendiği nihai lig/takım güçleri."""
+    return {"leagues": _cached_predictor_data()}
+
+
+@functools.lru_cache(maxsize=1)
+def _cached_calibration_report() -> dict[str, Any]:
+    from app.data.backtest_results import load_match_results
+    from app.engine.strength import compute_calibration_report
+
+    return compute_calibration_report(load_match_results())
+
+
+@functools.lru_cache(maxsize=1)
+def _cached_predictor_data() -> list[dict[str, Any]]:
+    from app.data.backtest_results import load_match_results
+    from app.engine.strength import predictor_data
+
+    return predictor_data(load_match_results())
 
 
 @router.get(

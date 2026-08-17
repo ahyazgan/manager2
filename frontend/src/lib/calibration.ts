@@ -182,8 +182,11 @@ function blendLedgers(a: LedgerRow[], b: LedgerRow[], wA: number): LedgerRow[] {
     const pH = wA * r.pH + wB * o.pH, pD = wA * r.pD + wB * o.pD, pA = wA * r.pA + wB * o.pA;
     const idx = pH >= pD && pH >= pA ? 0 : pD >= pA ? 1 : 2;
     const ps = [pH, pD, pA];
-    const over = r.pOver !== undefined ? wA * (r.pOver ?? 0) + wB * (o.pOver ?? 0) : r.pOver;
-    const btts = r.pBTTS !== undefined ? wA * (r.pBTTS ?? 0) + wB * (o.pBTTS ?? 0) : r.pBTTS;
+    // Gol marketleri: karşı defterde görüş yoksa (Elo market üretmez) mevcut
+    // görüş AYNEN taşınır — 0 ile harmanlamak olasılığı wA× küçültüp market
+    // kalibrasyonunu bozuyordu (over/btts trust 0'a düşüyordu; doğrusu 56/45).
+    const over = r.pOver !== undefined ? wA * r.pOver + wB * (o.pOver ?? r.pOver) : r.pOver;
+    const btts = r.pBTTS !== undefined ? wA * r.pBTTS + wB * (o.pBTTS ?? r.pBTTS) : r.pBTTS;
     return {
       ...r, pH: round(pH, 4), pD: round(pD, 4), pA: round(pA, 4),
       pick: OUT[idx], conf: round(ps[idx], 4), hit: OUT[idx] === r.actual,
