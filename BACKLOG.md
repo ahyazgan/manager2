@@ -22,6 +22,15 @@
 - [x] Kalibrasyon turu 1: Dixon-Coles ρ backend/frontend hizalama (-0.08)  (5f67df8)
   Done when: DEFAULT_RHO tek kaynak, çağıranlar import ediyor, testler güncel, committed.
 
+### Veri turu (dış açık veri — ücretsiz kaynaklar)
+
+- [x] Backtest verisi 2026'ya güncellendi + Süper Lig (openfootball)  (edc6c66)
+  Done when: 2023-26 sezonları eşlenmiş adlarla birleşik, model şutsuz satırlarda gole düşüyor, rapor yeniden üretildi. → trust 76→83.
+- [x] 6 ek lig + Süper Lig train sezonları + numpy bootstrap  (01070f5)
+  Done when: 26k maç, 11 ligde out-of-sample rapor <5 sn. → trust 85, Süper Lig %55.4.
+- [ ] Motor audit'i çok-turnuvalı (La Liga 18/19 + WC 2022 + Euro 2024) — IC n=68→~470
+  Done when: full_season_audit --competitions ile koşuldu, rapor commit'li.
+
 ### Kalibrasyon turu 2 (sonraki oturum — API'siz devam)
 
 - [x] full_season_audit'i cache'le yeniden koş — IC kolonlu gerçek rapor üret  (89dd187)

@@ -103,11 +103,22 @@ def ensure_db():
     Base.metadata.create_all(db_engine)
 
 
-def ingest_full_season(src: StatsBombOpen, max_matches: int | None = None) -> list[int]:
-    """Tüm La Liga 2018/19 maçlarını ingest et."""
-    matches = src.get_matches(
-        competition_id=LA_LIGA_COMP_ID, season_id=LA_LIGA_SEASON_ID_201819,
-    )
+def ingest_full_season(
+    src: StatsBombOpen,
+    max_matches: int | None = None,
+    competitions: list[tuple[int, int]] | None = None,
+) -> list[int]:
+    """Verilen turnuvaların tüm maçlarını ingest et (default: La Liga 2018/19)."""
+    if competitions is None:
+        competitions = [(LA_LIGA_COMP_ID, LA_LIGA_SEASON_ID_201819)]
+    matches: list[dict[str, Any]] = []
+    for comp_id, season_id in competitions:
+        try:
+            matches.extend(
+                src.get_matches(competition_id=comp_id, season_id=season_id)
+            )
+        except RuntimeError as e:
+            print(f"  SKIP {comp_id}/{season_id}: {str(e)[:60]}")
     if max_matches:
         matches = matches[:max_matches]
     print(f"\n[1/3] {len(matches)} maç ingest ediliyor...")
@@ -403,16 +414,27 @@ def main() -> int:
     if "--max" in parser_args:
         idx = parser_args.index("--max")
         max_matches = int(parser_args[idx + 1])
+    # --competitions "11:4,43:106" — comp_id:season_id çiftleri
+    competitions: list[tuple[int, int]] | None = None
+    if "--competitions" in parser_args:
+        idx = parser_args.index("--competitions")
+        competitions = [
+            (int(c.split(":")[0]), int(c.split(":")[1]))
+            for c in parser_args[idx + 1].split(",") if c.strip()
+        ]
 
     print(f"\n{'='*70}")
-    print("  Full Season Audit — La Liga 2018/19")
+    print("  Full Season Audit")
+    print(f"  Competitions: {competitions or 'La Liga 2018/19 (default)'}")
     print(f"  Max matches: {max_matches or 'all'}")
     print(f"{'='*70}")
     ensure_db()
     src = StatsBombOpen()
     started = time.time()
 
-    match_ids = ingest_full_season(src, max_matches=max_matches)
+    match_ids = ingest_full_season(
+        src, max_matches=max_matches, competitions=competitions,
+    )
     print(f"\n  Ingest tamam: {len(match_ids)} maç "
           f"({time.time() - started:.0f} sn)")
 
