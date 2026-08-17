@@ -19,8 +19,14 @@ Penalty şutları model'e dahil edilmez (xG = 0.76 sabit, literatür).
 # Synthetic data (test/dev — gerçek StatsBomb yok ise)
 python -m app.engine.xg.train --output models/xg_v1.pkl --source synthetic --n 5000
 
-# StatsBomb Open (TODO — app/data/sources/statsbomb_open.py adapter)
+# StatsBomb Open (ücretsiz, non-commercial) — default: La Liga 20/21 + WC 2022
+# STATSBOMB_CACHE_DIR ile indirilenler diske yazılır, tekrar offline çalışır.
+STATSBOMB_CACHE_DIR=.statsbomb_cache \
 python -m app.engine.xg.train --output models/xg_v1.pkl --source statsbomb_open
+
+# Farklı lig/sezon + hızlı deneme:
+python -m app.engine.xg.train --output models/xg_v1.pkl --source statsbomb_open \
+    --competitions 11:90,43:106 --max-matches 10
 ```
 
 Çıktı:

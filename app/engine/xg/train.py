@@ -1,7 +1,8 @@
 """xG modeli eğitim pipeline'ı (sklearn LogisticRegression).
 
 CLI: `python -m app.engine.xg.train --output models/xg_v1.pkl`
-StatsBomb Open data desteği: `--source statsbomb_open --competition 43,11`
+StatsBomb Open data desteği:
+    `--source statsbomb_open --competitions 11:90,43:106 [--max-matches N]`
 Synthetic data (test/dev): `--source synthetic --n 5000`
 
 Feature engineering — Caley 2014 yaklaşımı:
@@ -219,6 +220,30 @@ def train_and_save(
     return metrics
 
 
+def _parse_competitions(raw: str) -> list[tuple[int, int]]:
+    """`"11:90,43:106"` → [(11, 90), (43, 106)] — comp_id:season_id çiftleri."""
+    pairs: list[tuple[int, int]] = []
+    for chunk in raw.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        comp_str, sep, season_str = chunk.partition(":")
+        if not sep:
+            raise argparse.ArgumentTypeError(
+                f"geçersiz --competitions öğesi {chunk!r} — "
+                "format comp_id:season_id (örn. 11:90,43:106)"
+            )
+        try:
+            pairs.append((int(comp_str), int(season_str)))
+        except ValueError as e:
+            raise argparse.ArgumentTypeError(
+                f"geçersiz --competitions öğesi {chunk!r}: {e}"
+            ) from None
+    if not pairs:
+        raise argparse.ArgumentTypeError("--competitions boş olamaz")
+    return pairs
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="xG model train pipeline")
     parser.add_argument("--output", type=Path, required=True)
@@ -228,12 +253,23 @@ def main() -> int:
     parser.add_argument("--n", type=int, default=5000, help="synthetic sample count")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--version", default="xg_trained_v1")
+    parser.add_argument(
+        "--competitions", type=_parse_competitions, default=None,
+        help="statsbomb_open için comp_id:season_id çiftleri "
+             "(örn. '11:90,43:106'). Default: La Liga 20/21 + WC 2022.",
+    )
+    parser.add_argument(
+        "--max-matches", type=int, default=None,
+        help="statsbomb_open için lig başına maç limiti (hızlı deneme)",
+    )
     args = parser.parse_args()
 
     if args.source == "synthetic":
         df = generate_synthetic_shots(n=args.n, seed=args.seed)
     else:
-        df = _load_statsbomb_shots()
+        df = _load_statsbomb_shots(
+            competitions=args.competitions, max_matches=args.max_matches,
+        )
     metrics = train_and_save(
         df, args.output, version=args.version,
     )
