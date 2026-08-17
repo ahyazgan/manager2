@@ -325,6 +325,9 @@ def run_weekly_digest_handler(*, league_external_id: int, lookback_days: int = 7
             agent_name=agent.name, agent_version=agent.version,
         )
         session.commit()
+    # Push/email teslimi — kanal yapılandırılmışsa kısa özet gönder
+    from app.scheduler.digest_notify import notify_weekly_digest
+    notify_weekly_digest(result.output_json, result.summary)
     log.info(
         "job run_weekly_digest: league=%d summary=%s",
         league_external_id, result.summary,
