@@ -28,10 +28,10 @@
   Done when: STATSBOMB_CACHE_DIR ile 34 maç audit, full_season_audit.md IC'li güncel, committed.
 - [x] xG eğitim verisini büyüt (StatsBomb Open ücretsiz sezonlar)  (bkz. models/xg_v1_metadata.json)
   Done when: ≥5k şutla eğitim, metrikler metadata'da, README tablosu güncel. → ~18k şut, Brier 0.078.
-- [ ] Dixon-Coles modelini app/engine/predict'e tam taşı — frontend API'den okusun (ROADMAP Ufuk 3)
-  Done when: takım atk/def güçleri backend'de öğreniliyor, frontend calibration sayfası API tüketiyor.
-- [ ] validated-trust rozetlerini /admin/decisions/calibration verisine bağla
-  Done when: frontend rozet gerçek karar defteri kalibrasyonunu gösteriyor, elle senkron sabit kalkıyor.
+- [x] Dixon-Coles modelini backend'e tam taşı — frontend API'den okusun (ROADMAP Ufuk 3)  (d5ab9f8, efec2d5)
+  Done when: takım atk/def güçleri backend'de öğreniliyor (app/engine/strength), frontend calibration sayfası API tüketiyor (yerel hesap fallback). → port yayımlanmış sayıları birebir üretti (76/56/45); market blend bug'ı iki tarafta düzeltildi.
+- [x] validated-trust rozetlerini canlı kalibrasyon verisine bağla  (efec2d5)
+  Done when: frontend rozet gerçek kalibrasyonu gösteriyor, elle senkron sabit kalkıyor. → TrustBadge /api/trust'tan canlı okuyor (backend raporu + karar defteri isabeti); snapshot sadece fallback.
 
 - [x] Mobile sidebar drawer  (ba07618)
   Done when: drawer opens/closes on mobile breakpoints, nav items reachable, tsc+build clean, committed.
