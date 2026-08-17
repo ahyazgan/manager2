@@ -56,6 +56,7 @@ from app.engine.press_resistance import compute_press_resistance
 from app.engine.pressing_trigger import compute_pressing_trigger
 from app.engine.recovery_zone_heat import compute_recovery_zone_heat
 from app.engine.set_piece_zones import compute_set_piece_zones
+from app.engine.signal_audit import audit_engine_signal
 from app.engine.tempo import compute_tempo
 from app.engine.transition import compute_transition
 from app.engine.xt import compute_team_xt
@@ -197,6 +198,8 @@ def run_audit(match_ids: list[int]) -> dict[str, Any]:
     print(f"\n[2/3] {len(match_ids)} maç üzerinde engine audit...")
     # team_id -> engine_name -> [values across matches]
     by_team_engine: dict[int, dict[str, list[float]]] = {}
+    # engine_name -> [(metrik değeri, o maçın gol farkı)] — concurrent IC için
+    outcome_pairs: dict[str, list[tuple[float, float]]] = {}
     # Archetype counts (categorical)
     archetype_counts: dict[int, dict[str, int]] = {}
 
@@ -217,6 +220,11 @@ def run_audit(match_ids: list[int]) -> dict[str, Any]:
                 results = _team_engines_for_match(session, mid, team_id, opp_id)
                 if not results:
                     continue
+                goal_diff: float | None = None
+                if match.home_score is not None and match.away_score is not None:
+                    own = match.home_score if team_id == home_id else match.away_score
+                    opp = match.away_score if team_id == home_id else match.home_score
+                    goal_diff = float(own - opp)
                 by_team_engine.setdefault(team_id, {})
                 archetype_counts.setdefault(team_id, {})
                 for spec in TEAM_ENGINES:
@@ -236,14 +244,26 @@ def run_audit(match_ids: list[int]) -> dict[str, Any]:
                             )
                     elif isinstance(val, (int, float)) and not math.isinf(val):
                         by_team_engine[team_id].setdefault(eng_name, []).append(float(val))
+                        if goal_diff is not None:
+                            outcome_pairs.setdefault(eng_name, []).append(
+                                (float(val), goal_diff)
+                            )
             if i % 5 == 0:
                 print(f"  [{i}/{len(match_ids)}]")
 
-    return {"by_team_engine": by_team_engine, "archetype_counts": archetype_counts}
+    return {
+        "by_team_engine": by_team_engine,
+        "outcome_pairs": outcome_pairs,
+        "archetype_counts": archetype_counts,
+    }
 
 
-def signal_audit(by_team_engine: dict[int, dict[str, list[float]]]) -> dict[str, Any]:
-    """Engine başına: variance (CV), non-null rate, takım-arası farkı."""
+def signal_audit(
+    by_team_engine: dict[int, dict[str, list[float]]],
+    outcome_pairs: dict[str, list[tuple[float, float]]] | None = None,
+) -> dict[str, Any]:
+    """Engine başına: variance (CV/spread) + concurrent IC (gol farkı korelasyonu)."""
+    outcome_pairs = outcome_pairs or {}
     # Tüm takım sample'larını engine başına birleştir
     engine_samples: dict[str, list[float]] = {}
     engine_by_team: dict[str, dict[int, float]] = {}
@@ -260,41 +280,20 @@ def signal_audit(by_team_engine: dict[int, dict[str, list[float]]]) -> dict[str,
         if not samples:
             audit[eng] = {"verdict": "DEAD", "reason": "no samples"}
             continue
-        mean = statistics.mean(samples)
-        stdev = statistics.pstdev(samples) if len(samples) > 1 else 0.0
-        # CV (coefficient of variation): mean≈0 ise tanımsız
-        cv = (stdev / abs(mean)) if abs(mean) > 1e-6 else float("inf")
-        team_means = engine_by_team.get(eng, {})
-        team_spread = (
-            (max(team_means.values()) - min(team_means.values()))
-            if len(team_means) > 1 else 0.0
+        v = audit_engine_signal(
+            samples, engine_by_team.get(eng, {}), outcome_pairs.get(eng)
         )
-        # Verdict heuristic (mean≈0 case'inde stdev'i direkt kullan):
-        # - n < 20 → INSUFFICIENT
-        # - mean≈0 ise: spread büyükse STRONG, küçükse NO_SIGNAL
-        # - mean≠0 ise: CV ≥ 0.30 veya spread/|mean| ≥ 0.30 → STRONG
-        # - CV < 0.05 ve spread/|mean| < 0.10 → NO_SIGNAL
-        n = len(samples)
-        if n < 20:
-            verdict = "INSUFFICIENT_DATA"
-        elif abs(mean) < 1e-6:
-            # mean ≈ 0 (örn. zero-sum metrikler: dominance ev+ - dep- = 0)
-            # → stdev/spread mutlak değerine bak
-            verdict = "STRONG_SIGNAL" if stdev > 0.5 or team_spread > 1.0 else "NO_SIGNAL"
-        elif cv < 0.05 and (team_spread / abs(mean)) < 0.10:
-            verdict = "NO_SIGNAL"
-        elif cv >= 0.30 or (team_spread / abs(mean)) >= 0.30:
-            verdict = "STRONG_SIGNAL"
-        else:
-            verdict = "MODERATE"
         audit[eng] = {
-            "n_samples": n,
-            "mean": round(mean, 4),
-            "stdev": round(stdev, 4),
-            "cv": round(cv, 4),
-            "team_spread": round(team_spread, 4),
-            "n_teams": len(team_means),
-            "verdict": verdict,
+            "n_samples": v.n_samples,
+            "mean": v.mean,
+            "stdev": v.stdev,
+            "cv": v.cv,
+            "team_spread": v.team_spread,
+            "n_teams": v.n_teams,
+            "ic": v.ic,
+            "ic_pairs": v.ic_pairs,
+            "verdict": v.verdict,
+            "predictive": v.predictive,
         }
     return audit
 
@@ -349,13 +348,14 @@ def write_report(
         encoding="utf-8",
     )
 
-    # Markdown — ranked engines
+    # Markdown — ranked engines: verdict → |IC| (sonuçla ilişki) → CV
     sorted_engines = sorted(
         audit.items(),
         key=lambda kv: (
             {"STRONG_SIGNAL": 0, "MODERATE": 1, "INSUFFICIENT_DATA": 2,
              "NO_SIGNAL": 3, "DEAD": 4}.get(kv[1]["verdict"], 5),
-            -kv[1].get("cv", 0),
+            -abs(kv[1].get("ic") or 0.0),
+            -(kv[1].get("cv") or 0.0),
         ),
     )
     lines: list[str] = [
@@ -363,15 +363,23 @@ def write_report(
         "",
         f"La Liga 2018/19 üzerinde {n_matches} maç ingest + 22 team-level engine audit.",
         "",
+        "IC = Spearman(metrik, maçın gol farkı) — concurrent validity.",
+        "CV mean≈0 metriklerde tanımsızdır ('—').",
+        "",
         "## Engine Rankings (signal → noise)",
         "",
-        "| Engine | Verdict | CV | n | Team Spread | Mean |",
-        "|---|---|---|---|---|---|",
+        "| Engine | Verdict | IC | Predictive | CV | n | Team Spread | Mean |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for eng, info in sorted_engines:
+        cv = info.get("cv")
+        ic = info.get("ic")
         lines.append(
             f"| `{eng}` | **{info['verdict']}** | "
-            f"{info.get('cv', 0):.3f} | {info.get('n_samples', 0)} | "
+            f"{f'{ic:+.3f}' if ic is not None else '—'} | "
+            f"{info.get('predictive', 'N/A')} | "
+            f"{f'{cv:.3f}' if cv is not None else '—'} | "
+            f"{info.get('n_samples', 0)} | "
             f"{info.get('team_spread', 0):.3f} | "
             f"{info.get('mean', 0):.3f} |"
         )
@@ -414,7 +422,7 @@ def main() -> int:
     print(f"\n  Audit tamam: {len(by_team_engine)} takım örneği "
           f"({time.time() - started:.0f} sn)")
 
-    signal = signal_audit(by_team_engine)
+    signal = signal_audit(by_team_engine, audit_result.get("outcome_pairs"))
     barca_val = barca_validation(by_team_engine)
 
     print("\n[3/3] Rapor yazılıyor → full_season_audit.json + .md")
@@ -434,7 +442,11 @@ def main() -> int:
             print(f"\n{v} ({len(engs)}):")
             for e in engs:
                 info = signal[e]
-                print(f"  · {e}  CV={info.get('cv', 0):.2f}  "
+                cv = info.get("cv")
+                ic = info.get("ic")
+                print(f"  · {e}  "
+                      f"IC={f'{ic:+.2f}' if ic is not None else '—'}  "
+                      f"CV={f'{cv:.2f}' if cv is not None else '—'}  "
                       f"spread={info.get('team_spread', 0):.2f}  "
                       f"n={info.get('n_samples', 0)}")
 
