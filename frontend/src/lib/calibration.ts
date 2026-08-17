@@ -26,7 +26,7 @@ const ALL = (raw as RawResult[]).slice().sort((a, b) => (a.date < b.date ? -1 : 
 
 export const LEAGUE_LABEL: Record<string, string> = {
   "en.1": "Premier League", "es.1": "La Liga", "de.1": "Bundesliga",
-  "it.1": "Serie A", "fr.1": "Ligue 1",
+  "it.1": "Serie A", "fr.1": "Ligue 1", "tr.1": "Süper Lig",
 };
 export const leagueLabel = (c: string) => LEAGUE_LABEL[c] || c;
 
@@ -156,8 +156,10 @@ function runCore(blend = BLEND): ModelState {
     row.yOver = m.hg + m.ag >= 3 ? 1 : 0; row.yBTTS = m.hg >= 1 && m.ag >= 1 ? 1 : 0;
     ledger.push(row);
     // Gözlem = gol ile şut-tabanlı xG-proxy harmanı (şut daha az gürültülü).
-    const obsH = blend * m.hg + (1 - blend) * (m.hst ?? 0) * conv;
-    const obsA = blend * m.ag + (1 - blend) * (m.ast ?? 0) * conv;
+    // Şut verisi YOKSA (openfootball 2023+ satırları) saf gol — 0-şutla
+    // harman gücü sistematik aşağı çekerdi.
+    const obsH = m.hst != null ? blend * m.hg + (1 - blend) * m.hst * conv : m.hg;
+    const obsA = m.ast != null ? blend * m.ag + (1 - blend) * m.ast * conv : m.ag;
     const gH = obsH - lH, gA = obsA - lA;
     atk[kH] = aH + LR * gH - LR * WD * aH; def[kA] = dA - LR * gH - LR * WD * dA;
     atk[kA] = aA + LR * gA - LR * WD * aA; def[kH] = dH - LR * gA - LR * WD * dH;
@@ -404,8 +406,12 @@ export function computeCalibration(): CalibrationReport {
     brierSkill: round(m.brierSkill, 4), ece: round(m.ece, 4),
   });
 
+  // Test penceresi etiketi veriyle büyür: son test yılına göre "2022-26" gibi.
+  const lastTest = test.length ? test.reduce((a, r) => (r.date > a ? r.date : a), "") : "";
+  const splitSeason = lastTest ? `2022-${String(Number(lastTest.slice(0, 4)) % 100).padStart(2, "0")}` : "2022-23";
+
   return {
-    matches: test.length, trainMatches, splitSeason: "2022-23",
+    matches: test.length, trainMatches, splitSeason,
     accuracy: round(M.accuracy, 4), brier: round(M.brier, 4), logLoss: round(M.logLoss, 4),
     baselineBrier: round(M.baselineBrier, 4), baselineLogLoss: round(M.baselineLogLoss, 4),
     brierSkill: round(M.brierSkill, 4), ece: round(M.ece, 4), trust,

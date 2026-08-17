@@ -53,6 +53,7 @@ LEAGUE_LABEL: dict[str, str] = {
     "de.1": "Bundesliga",
     "it.1": "Serie A",
     "fr.1": "Ligue 1",
+    "tr.1": "Süper Lig",
 }
 
 
@@ -198,8 +199,19 @@ def run_core(
         row["yBTTS"] = 1 if m["hg"] >= 1 and m["ag"] >= 1 else 0
         ledger.append(row)
         # Gözlem = gol ile şut-tabanlı xG-proxy harmanı (şut daha az gürültülü).
-        obs_h = blend * m["hg"] + (1 - blend) * (m.get("hst") or 0) * conv
-        obs_a = blend * m["ag"] + (1 - blend) * (m.get("ast") or 0) * conv
+        # Şut verisi YOKSA (openfootball 2023+ satırları) saf gol kullanılır —
+        # 0-şutla harmanlamak gücü sistematik aşağı çekerdi. (hst=0 geçerli
+        # veridir, sadece alanın hiç olmaması düşürür.)
+        h_sot = m.get("hst")
+        a_sot = m.get("ast")
+        obs_h = (
+            blend * m["hg"] + (1 - blend) * h_sot * conv
+            if h_sot is not None else float(m["hg"])
+        )
+        obs_a = (
+            blend * m["ag"] + (1 - blend) * a_sot * conv
+            if a_sot is not None else float(m["ag"])
+        )
         g_h = obs_h - lam_h
         g_a = obs_a - lam_a
         atk[k_h] = a_h + LR * g_h - LR * WD * a_h
@@ -497,9 +509,15 @@ def compute_calibration_report(matches: Sequence[MatchResult]) -> dict[str, Any]
         for comp, v in sorted(bc.items(), key=lambda kv: -kv[1][0])
     ]
 
+    # Test penceresi etiketi veriyle büyür: son test yılına göre "2022-26" gibi.
+    last_test = max((r["date"] for r in test), default="")
+    split_season = (
+        f"2022-{int(last_test[:4]) % 100:02d}" if last_test else "2022-23"
+    )
+
     return {
         "matches": len(test), "trainMatches": train_matches,
-        "splitSeason": "2022-23",
+        "splitSeason": split_season,
         "accuracy": _round(m["accuracy"]), "brier": _round(m["brier"]),
         "logLoss": _round(m["logLoss"]),
         "baselineBrier": _round(m["baselineBrier"]),
